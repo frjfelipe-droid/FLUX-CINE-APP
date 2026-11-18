@@ -1,0 +1,85 @@
+name: Gerar versão iOS do FLUX CINE
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Vídeos de exemplo dos modelos (Mixkit, licença gratuita)
+        run: |
+          mkdir -p www/media
+          for id in 1240 1238 39878 1232 39765 39875; do
+            curl -sSfL --retry 3 -o www/media/$id.mp4 https://assets.mixkit.co/videos/$id/$id-360.mp4
+          done
+      - run: npm ci
+      - run: npx cap sync ios
+      - name: Fontes e teste automático dentro do app
+        run: |
+          mkdir -p ios/App/App/public/ttf ios/App/App/public/selftest
+          cp android/app/src/main/assets/fonts/*.ttf ios/App/App/public/ttf/
+          cp www/media/1238.mp4 ios/App/App/public/selftest/test.mp4
+          python3 ios/selftest/make_spec.py android/app/src/androidTest/assets/layouts.json ios/App/App/public/selftest/spec.json
+      - name: Compilar para iPhone (sem assinatura)
+        run: |
+          xcodebuild -version
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build-ios \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build | tail -40
+          test -d build-ios/Build/Products/Release-iphoneos/App.app
+          mkdir -p Payload && cp -R build-ios/Build/Products/Release-iphoneos/App.app Payload/
+          zip -qry FLUX-CINE.ipa Payload && ls -la FLUX-CINE.ipa
+      - name: Testar no simulador de iPhone
+        run: |
+          mkdir -p frames-ios
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath build-sim \
+            CODE_SIGNING_ALLOWED=NO build | tail -5
+          DT=$(xcrun simctl list devicetypes | grep -E "^iPhone 1[5-7] \(" | tail -1 | sed -E 's/.*\((com[^)]*)\).*/\1/')
+          RT=$(xcrun simctl list runtimes | grep -E "^iOS" | tail -1 | sed -E 's/.* - (com[^ ]*).*/\1/')
+          echo "device=$DT runtime=$RT"
+          UDID=$(xcrun simctl create flux "$DT" "$RT")
+          xcrun simctl boot $UDID
+          xcrun simctl bootstatus $UDID -b
+          APP=build-sim/Build/Products/Debug-iphonesimulator/App.app
+          xcrun simctl install $UDID $APP
+          xcrun simctl launch $UDID com.fluxcine.app
+          sleep 12
+          xcrun simctl io $UDID screenshot frames-ios/ui_home.png || true
+          xcrun simctl terminate $UDID com.fluxcine.app || true
+          xcrun simctl launch $UDID com.fluxcine.app -fluxSelfTest
+          DATA=$(xcrun simctl get_app_container $UDID com.fluxcine.app data)
+          for i in $(seq 1 120); do test -f "$DATA/Documents/selftest/done" && break; sleep 5; done
+          cp "$DATA"/Documents/selftest/*.jpg "$DATA"/Documents/selftest/report.json frames-ios/ 2>/dev/null || true
+          cp "$DATA"/Documents/selftest/out_A.mp4 frames-ios/ios_A.mp4 2>/dev/null || true
+          xcrun simctl spawn $UDID log show --last 10m --predicate 'process == "App"' --style compact > frames-ios/log.txt 2>/dev/null || true
+          ls -la frames-ios
+          cat frames-ios/report.json || true
+      - name: Publicar teste do iOS
+        if: always()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ci-ios
+          name: Resultado do teste no iPhone (simulador)
+          prerelease: true
+          make_latest: false
+          files: |
+            frames-ios/*
+      - name: Publicar IPA para instalar
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ios-v5.${{ github.run_number }}
+          name: FLUX CINE iOS v5.${{ github.run_number }}
+          prerelease: true
+          make_latest: false
+          body: |
+            Arquivo FLUX-CINE.ipa (sem assinatura). Para instalar no iPhone use o Sideloadly ou o AltStore no computador, entrando com seu Apple ID.
+          files: FLUX-CINE.ipa
+      - name: O teste passou?
+        run: python3 -c "import json,sys; r=json.load(open('frames-ios/report.json')); bad=[k for k in ('A','B') if not r.get(k,{}).get('ok')]; print(r); sys.exit(1 if bad else 0)"

@@ -2,6 +2,8 @@ name: Gerar APK do FLUX CINE
 on:
   push:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -19,3 +21,11 @@ jobs:
       - run: cp android/app/build/outputs/apk/debug/app-debug.apk FLUX-CINE.apk
       - uses: actions/upload-artifact@v4
         with: { name: FLUX-CINE-apk, path: FLUX-CINE.apk }
+      - name: Publicar para download
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: FLUX CINE v1.0.${{ github.run_number }}
+          body: Baixe o arquivo FLUX-CINE.apk abaixo e instale no Android.
+          files: FLUX-CINE.apk
+          make_latest: true

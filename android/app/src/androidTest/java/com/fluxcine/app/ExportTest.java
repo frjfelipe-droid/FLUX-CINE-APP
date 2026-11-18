@@ -121,22 +121,6 @@ public class ExportTest {
         report.put("D", runExport(target, d, "D", new double[]{0.4, 1.3, 2.2, pd.montage - 0.3, pd.montage + 0.8, pd.finalStart + 0.3}));
         report.put("D_expected", pd.total);
 
-        // diagnóstico do dinâmico: cada tipo de trecho isolado
-        double[][][] diag = {
-                {{1.0, 3.4, 2.0}}, {{5.0, 5.6, 0.5}}, {{8.0, 8.07, 0.1}}, {{11.0, 11.9, 1.0}}
-        };
-        String[] dn = {"Dfast", "Dslow", "Dfreeze", "Dmute"};
-        for (int q = 0; q < diag.length; q++) {
-            List<double[]> one = new ArrayList<>();
-            one.add(diag[q][0]);
-            List<double[]> talk1 = new ArrayList<>();
-            talk1.add(segs.get(segs.size() - 1));
-            Plan pq = plan(in, words, one, talk1, 0);
-            JSONObject dq = baseSpec(pq).put("titleLayout", layouts.getJSONArray("empilhado")).put("titleEnd", 1.0).put("captionStyle", capBox).put("sfx", "none");
-            report.put(dn[q], runExport(target, dq, dn[q], new double[]{0.2}));
-            report.getJSONObject(dn[q]).put("expected", pq.total);
-        }
-
         // K — 4K curto com o título Etiqueta
         JSONArray seg4 = new JSONArray().put(new JSONObject().put("path", in.getAbsolutePath()).put("startMs", 1500).put("endMs", 4000));
         JSONObject k = new JSONObject().put("segments", seg4).put("captions", new JSONArray()).put("boundaries", new JSONArray())

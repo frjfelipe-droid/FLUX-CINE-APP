@@ -197,8 +197,17 @@ public class FluxEditorPlugin extends Plugin {
             @Override public void onDone(long durationMs) {
                 JSObject ret = new JSObject();
                 ret.put("path", out.getAbsolutePath());
-                ret.put("durationMs", durationMs);
-                ret.put("thumb", thumbOf(out.getAbsolutePath(), Math.min(1_500_000L, durationMs * 500L)));
+                long dms = durationMs;
+                if (dms <= 0) {
+                    try {
+                        MediaMetadataRetriever mr = new MediaMetadataRetriever();
+                        mr.setDataSource(out.getAbsolutePath());
+                        dms = parseLong(mr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
+                        mr.release();
+                    } catch (Exception ignored) { }
+                }
+                ret.put("durationMs", dms);
+                ret.put("thumb", thumbOf(out.getAbsolutePath(), Math.min(1_500_000L, dms * 500L)));
                 call.resolve(ret);
             }
             @Override public void onError(String message) {

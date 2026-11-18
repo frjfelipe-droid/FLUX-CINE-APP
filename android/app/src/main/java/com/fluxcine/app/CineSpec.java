@@ -30,6 +30,9 @@ final class CineSpec {
     double total;
     double[] boundaries = new double[0];
     final List<Chunk> chunks = new ArrayList<>();
+    List<TitleLayer> layers = new ArrayList<>();
+    double titleEnd = 0;
+    int outW = W, outH = H;
 
     double ctaStart() {
         return Math.max(0.6, total - (ending.equals("logo") ? 2.4 : 3.2));
@@ -54,6 +57,9 @@ final class CineSpec {
         } catch (Exception e) {
             s.labelFont = Typeface.DEFAULT_BOLD;
         }
+        s.layers = TitleLayer.parse(ctx, o.optJSONArray("titleLayout"));
+        s.titleEnd = o.optDouble("titleEnd", s.layers.isEmpty() ? 0 : 3.4);
+        if ("4k".equals(o.optString("quality", "hd"))) { s.outW = W * 2; s.outH = H * 2; }
         JSONArray segs = o.getJSONArray("segments");
         double t = 0;
         for (int i = 0; i < segs.length(); i++) {

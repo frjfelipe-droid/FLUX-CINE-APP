@@ -31,8 +31,8 @@ final class CineRenderer {
 
     CineRenderer(CineSpec spec) {
         s = spec;
-        buf[0] = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888);
-        buf[1] = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888);
+        buf[0] = Bitmap.createBitmap(spec.outW, spec.outH, Bitmap.Config.ARGB_8888);
+        buf[1] = Bitmap.createBitmap(spec.outW, spec.outH, Bitmap.Config.ARGB_8888);
         stroke.setStyle(Paint.Style.STROKE);
         stroke.setStrokeJoin(Paint.Join.ROUND);
         stroke.setColor(Color.BLACK);
@@ -41,7 +41,7 @@ final class CineRenderer {
     synchronized Bitmap frame(double t) {
         boolean anim = false;
         StringBuilder key = new StringBuilder();
-        if (t < 3.4) anim = true;
+        if (t < Math.max(s.titleEnd, s.layers.isEmpty() && !s.title.isEmpty() ? 3.4 : 0) + 0.05) anim = true;
         int ci = chunkAt(t);
         int wi = -1;
         if (ci >= 0) {
@@ -61,13 +61,17 @@ final class CineRenderer {
         Bitmap bmp = buf[cur];
         Canvas c = new Canvas(bmp);
         c.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+        c.save();
+        c.scale(s.outW / (float) W, s.outH / (float) H);
         draw(c, t, ci, wi);
+        c.restore();
         lastKey = anim ? null : k;
         return bmp;
     }
 
     private int chunkAt(double t) {
         if (t >= s.ctaStart() && s.ending.equals("logo")) return -1;
+        if (!s.layers.isEmpty() && t < s.titleEnd) return -1;
         for (int i = 0; i < s.chunks.size(); i++) {
             CineSpec.Chunk c = s.chunks.get(i);
             if (t >= c.s && t < c.e + 0.12) return i;
@@ -87,7 +91,8 @@ final class CineRenderer {
             c.drawRect(0, 0, W, LB, box);
             c.drawRect(0, H - LB, W, H, box);
         }
-        if (t < 3.4 && !s.title.isEmpty()) drawTitle(c, t);
+        if (!s.layers.isEmpty()) { if (t < s.titleEnd + 0.02) TitleLayer.drawAll(c, s.layers, t, s.titleEnd); }
+        else if (t < 3.4 && !s.title.isEmpty()) drawTitle(c, t);
         if (ci >= 0) drawCaption(c, t, s.chunks.get(ci), wi);
         for (double b : s.boundaries) {
             double d = t - b;

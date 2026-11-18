@@ -5,3 +5,4 @@ android/.gradle/
 android/local.properties
 www/media/
 android/app/src/main/assets/vosk-pt/
+android/app/src/androidTest/assets/test.mp4

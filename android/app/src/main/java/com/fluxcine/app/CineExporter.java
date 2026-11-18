@@ -9,6 +9,7 @@ import androidx.media3.common.Effect;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MimeTypes;
 import androidx.media3.common.audio.AudioProcessor;
+import androidx.media3.effect.FrameDropEffect;
 import androidx.media3.effect.OverlayEffect;
 import androidx.media3.effect.Presentation;
 import androidx.media3.effect.TextureOverlay;
@@ -50,7 +51,7 @@ final class CineExporter {
         if (mainSfx >= 0) {
             sfxEvents.add(new long[]{120_000, mainSfx});
             for (double b : spec.boundaries) sfxEvents.add(new long[]{Math.max(0, (long) ((b - 0.35) * 1e6)), SfxSynth.WHOOSH});
-            sfxEvents.add(new long[]{(long) (spec.ctaStart() * 1e6), SfxSynth.POP});
+            if (!spec.cta.isEmpty()) sfxEvents.add(new long[]{(long) (spec.ctaStart() * 1e6), SfxSynth.POP});
         }
 
         CineRenderer renderer = new CineRenderer(spec);
@@ -65,7 +66,8 @@ final class CineExporter {
                             .setStartPositionMs(startMs).setEndPositionMs(endMs).build())
                     .build();
             List<Effect> video = new ArrayList<>();
-            video.add(Presentation.createForWidthAndHeight(CineSpec.W, CineSpec.H, Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP));
+            video.add(FrameDropEffect.createDefaultFrameDropEffect(30f));
+            video.add(Presentation.createForWidthAndHeight(spec.outW, spec.outH, Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP));
             if (spec.ending.equals("zoom")) video.add(new ZoomTransform(globalUs, spec.total));
             video.add(new OverlayEffect(ImmutableList.<TextureOverlay>of(new CineOverlay(renderer, globalUs))));
             List<AudioProcessor> audio = new ArrayList<>();

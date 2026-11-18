@@ -1,0 +1,7 @@
+{
+  "appId": "com.fluxcine.app",
+  "appName": "FLUX CINE",
+  "webDir": "www",
+  "backgroundColor": "#050505",
+  "android": { "backgroundColor": "#050505" }
+}

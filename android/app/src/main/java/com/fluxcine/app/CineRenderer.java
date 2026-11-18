@@ -172,7 +172,7 @@ final class CineRenderer {
     // ---- legenda: palavra falada em destaque
     private void drawCaption(Canvas c, double t, CineSpec.Chunk k, int wi) {
         double a = outCubic(clamp((t - k.s) / 0.14));
-        float size = s.upper ? 84 : 68;
+        float size = s.upper ? 98 : 80;
         fill.setTypeface(s.font);
         fill.setTextAlign(Paint.Align.LEFT);
         fill.setTextSize(size);

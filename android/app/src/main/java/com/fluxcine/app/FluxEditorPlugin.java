@@ -52,8 +52,6 @@ import com.google.common.collect.ImmutableList;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.vosk.Model;
-import org.vosk.Recognizer;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -71,7 +69,7 @@ import java.util.concurrent.Executors;
 /**
  * FLUX CINE — editor de vídeo no aparelho.
  * pickVideo: escolhe um vídeo da galeria (copiado para o app).
- * transcribe: escuta a fala (Vosk, offline) e devolve as palavras com tempo.
+ * transcribe: escuta a fala (Whisper, offline) e devolve as palavras com tempo.
  * render: corta, junta, anima títulos, legenda, mixa efeitos e exporta (Media3 Transformer).
  * saveToGallery / shareInstagram / share: entrega o vídeo.
  */
@@ -146,6 +144,52 @@ public class FluxEditorPlugin extends Plugin {
     }
 
     // ---------------------------------------------------------------- escutar a fala
+
+    /** Diz se o modelo de voz "preciso" (Whisper small) já foi baixado. */
+    @PluginMethod
+    public void modelInfo(PluginCall call) {
+        java.io.File f = new java.io.File(SpeechEngine.modelDir(getContext()), SpeechEngine.SMALL);
+        JSObject r = new JSObject();
+        r.put("precise", f.exists() && f.length() > 100_000_000L);
+        call.resolve(r);
+    }
+
+    /** Baixa o modelo preciso (~190 MB) uma vez; depois tudo roda offline. */
+    @PluginMethod
+    public void downloadModel(PluginCall call) {
+        io.execute(() -> {
+            java.io.File dir = SpeechEngine.modelDir(getContext());
+            java.io.File tmp = new java.io.File(dir, SpeechEngine.SMALL + ".part");
+            java.io.File dst = new java.io.File(dir, SpeechEngine.SMALL);
+            try {
+                java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/" + SpeechEngine.SMALL).openConnection();
+                c.setInstanceFollowRedirects(true);
+                c.setConnectTimeout(20000);
+                c.setReadTimeout(30000);
+                long total = c.getContentLengthLong(), got = 0, last = 0;
+                try (java.io.InputStream in = c.getInputStream(); java.io.OutputStream os = new java.io.FileOutputStream(tmp)) {
+                    byte[] buf = new byte[1 << 16];
+                    int n;
+                    while ((n = in.read(buf)) > 0) {
+                        os.write(buf, 0, n);
+                        got += n;
+                        if (got - last > 2_000_000) {
+                            last = got;
+                            JSObject ev = new JSObject();
+                            ev.put("p", total > 0 ? got / (double) total : 0);
+                            notifyListeners("modelProgress", ev);
+                        }
+                    }
+                }
+                if (tmp.length() < 100_000_000L || !tmp.renameTo(dst)) throw new Exception("download incompleto");
+                SpeechEngine.get(getContext()).release();
+                call.resolve();
+            } catch (Exception e) {
+                tmp.delete();
+                call.reject("Não consegui baixar: " + e.getMessage());
+            }
+        });
+    }
 
     @PluginMethod
     public void transcribe(PluginCall call) {

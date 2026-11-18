@@ -7,7 +7,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 70
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,12 +22,11 @@ jobs:
           done
       - run: npm ci
       - run: npx cap sync android
-      - name: Modelo de voz em português
+      - name: Whisper (voz offline) + modelo em português
         run: |
-          curl -sSfL --retry 3 -o /tmp/vosk.zip https://alphacephei.com/vosk/models/vosk-model-small-pt-0.3.zip
-          unzip -q /tmp/vosk.zip -d /tmp/vosk
-          rm -rf android/app/src/main/assets/vosk-pt
-          mv /tmp/vosk/vosk-model-small-pt-0.3 android/app/src/main/assets/vosk-pt
+          git clone -q --depth 1 -b v1.8.7 https://github.com/ggml-org/whisper.cpp android/app/src/main/cpp/whisper.cpp
+          mkdir -p android/app/src/main/assets/whisper
+          curl -sSfL --retry 3 -o android/app/src/main/assets/whisper/ggml-base-q5_1.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base-q5_1.bin
       - name: Vídeo de teste com fala e pausas
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq espeak-ng ffmpeg >/dev/null

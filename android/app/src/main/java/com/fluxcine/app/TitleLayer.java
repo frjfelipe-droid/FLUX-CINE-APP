@@ -30,6 +30,7 @@ final class TitleLayer {
     boolean hasShadow, hasTextAlpha, hasGlow, hasRgb, hasCursor;
     float shDx, shDy, shSw, rgbOff, textAlpha = 1;
     int shColor, glowColor, rgbA, rgbB, cursorColor;
+    float arc;
     double animD, animU = 0.5;
 
     private static final Map<String, Typeface> FONTS = new HashMap<>();
@@ -86,6 +87,7 @@ final class TitleLayer {
             l.cx = (float) o.optDouble("cx", 540); l.cy = (float) o.optDouble("cy", 960);
             l.rx = (float) o.optDouble("rx", 100); l.ry = (float) o.optDouble("ry", 40);
             l.outline = (float) o.optDouble("outline", 0);
+            l.arc = (float) o.optDouble("arc", 0);
             if (o.has("glow")) { l.hasGlow = true; l.glowColor = color(o.optString("glow")); }
             if (o.has("cursor")) { l.hasCursor = true; l.cursorColor = color(o.optString("cursor")); }
             JSONArray rgb = o.optJSONArray("rgb");
@@ -118,6 +120,23 @@ final class TitleLayer {
 
     private static int withAlpha(int color, double a) {
         return Color.argb((int) Math.round(Color.alpha(color) * clamp(a)), Color.red(color), Color.green(color), Color.blue(color));
+    }
+
+    /** Texto em arco (centro do círculo abaixo da linha), cada letra gira junto — igual ao arcText do app. */
+    private static void arcText(Canvas c, String text, float r, float lsPx, float ox, float oy, Paint p) {
+        float tot = 0;
+        for (int i = 0; i < text.length(); i++) tot += p.measureText(text, i, i + 1) + lsPx;
+        float x = -tot / 2;
+        for (int i = 0; i < text.length(); i++) {
+            float cw = p.measureText(text, i, i + 1) + lsPx;
+            double ang = (x + cw / 2) / r;
+            c.save();
+            c.translate((float) (ox + r * Math.sin(ang)), (float) (oy + r - r * Math.cos(ang)));
+            c.rotate((float) Math.toDegrees(ang));
+            c.drawText(text, i, i + 1, -cw / 2 + lsPx / 2, 0, p);
+            c.restore();
+            x += cw;
+        }
     }
 
     static void drawAll(Canvas c, List<TitleLayer> layers, double t, double tEnd, float ox, float oy, float s) {
@@ -231,6 +250,13 @@ final class TitleLayer {
             c.drawText(txt, lx - off, 0, Q);
             Q.setColor(withAlpha(rgbB, a * 0.85));
             c.drawText(txt, lx + off, 0, Q);
+        }
+        if (arc > 0) {
+            if (hasShadow) { Q.reset(); Q.setAntiAlias(true); Q.setTypeface(P.getTypeface()); Q.setTextSize(size); Q.setColor(withAlpha(shColor, a)); Q.setMaskFilter(mf); arcText(c, txt, arc, (float) (lsx * size), shDx / sx, shDy, Q); }
+            Q.reset(); Q.setAntiAlias(true); Q.setTypeface(P.getTypeface()); Q.setTextSize(size); Q.setColor(withAlpha(color, a)); Q.setMaskFilter(mf);
+            arcText(c, txt, arc, (float) (lsx * size), 0, 0, Q);
+            c.restore();
+            return;
         }
         if (hasShadow) {
             if (shSw > 0) {

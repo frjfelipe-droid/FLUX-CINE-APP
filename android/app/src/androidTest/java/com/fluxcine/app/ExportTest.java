@@ -71,6 +71,9 @@ public class ExportTest {
         report.put("transcribeMs", System.currentTimeMillis() - t0);
         report.put("words", words);
         Log.i(TAG, "words(" + words.length() + ")=" + words);
+        StringBuilder heard = new StringBuilder();
+        for (int i = 0; i < words.length(); i++) heard.append(words.getJSONObject(i).getString("w")).append(' ');
+        report.put("heard", heard.toString().trim());
 
         MediaMetadataRetriever mr = new MediaMetadataRetriever();
         mr.setDataSource(in.getAbsolutePath());
@@ -98,13 +101,14 @@ public class ExportTest {
 
         // A — cinemático: gancho no início, título Clássico, legenda caixa, final de impacto, CTA
         Plan pa = plan(in, words, new ArrayList<double[]>(), order, 0);
-        JSONObject a = baseSpec(pa).put("titleLayout", layouts.getJSONArray("classico")).put("titleEnd", Math.max(2.6, Math.min(4.8, hookDur)))
+        for (int i = 1; i < pa.segments.length(); i += 2) pa.segments.getJSONObject(i).put("zoom", 1.08);
+        JSONObject a = baseSpec(pa).put("titleLayout", layouts.getJSONArray("paraiso")).put("grade", layouts.getJSONObject("grade")).put("titleEnd", Math.max(2.6, Math.min(4.8, hookDur)))
                 .put("captionStyle", capBox).put("cta", "Chama no WhatsApp").put("ending", "cut").put("sfx", "impact").put("quality", "hd");
         report.put("A", runExport(target, a, "A", new double[]{0.3, 1.2, a.getDouble("titleEnd") + 0.6, pa.finalStart + 0.05, pa.finalStart + 0.5, pa.total - 1.0}));
 
         // B — título Glitch, legenda Bangers com brilho e pulo, título movido para cima e menor
         JSONObject capGlow = new JSONObject(capBox.toString()).put("fontFile", "Bangers-400.ttf").put("upper", true).put("shadow", "glow").put("hl", "color").put("anim", "bounce").put("size", 1.25).put("ls", 0.04).put("y", 0.62).put("accent", "#00E5FF");
-        JSONObject b = new JSONObject(a.toString()).put("titleLayout", layouts.getJSONArray("glitch")).put("captionStyle", capGlow)
+        JSONObject b = new JSONObject(a.toString()).put("titleLayout", layouts.getJSONArray("vlog")).put("captionStyle", capGlow)
                 .put("titleTf", new JSONObject().put("ox", 0).put("oy", -420).put("s", 0.8)).put("cta", "").put("ending", "fade").put("sfx", "whoosh");
         report.put("B", runExport(target, b, "B", new double[]{0.25, 0.6, 1.5, b.getDouble("titleEnd") + 0.6, pa.finalStart + 0.3, pa.total - 0.5}));
 
@@ -115,7 +119,7 @@ public class ExportTest {
         chips.add(new double[]{8.0, 8.07, 0.1});
         chips.add(new double[]{11.0, 11.9, 1.0});
         Plan pd = plan(in, words, chips, segs, 1);
-        JSONObject d = baseSpec(pd).put("titleLayout", layouts.getJSONArray("empilhado")).put("titleEnd", Math.max(2.6, Math.min(6, pd.montage)))
+        JSONObject d = baseSpec(pd).put("titleLayout", layouts.getJSONArray("tudo")).put("titleEnd", Math.max(2.6, Math.min(6, pd.montage)))
                 .put("captionStyle", new JSONObject(capBox.toString()).put("fontFile", "Anton-400.ttf").put("upper", true).put("shadow", "hard").put("anim", "type"))
                 .put("cta", "").put("ending", "fade").put("sfx", "impact").put("quality", "hd");
         report.put("D", runExport(target, d, "D", new double[]{0.4, 1.3, 2.2, pd.montage - 0.3, pd.montage + 0.8, pd.finalStart + 0.3}));
@@ -128,6 +132,9 @@ public class ExportTest {
         report.put("K", runExport(target, k, "K", new double[]{0.3, 0.8, 1.6, 2.2, 2.3, 2.4}));
 
         toDownloads(target, "report.json", "application/json", report.toString(2).getBytes("UTF-8"));
+        assertTrue("Whisper não ouviu a fala: " + heard, words.length() >= 12);
+        String low = heard.toString().toLowerCase();
+        assertTrue("transcrição errada: " + heard, low.contains("erros") && low.contains("clientes"));
         Log.i(TAG, "report=" + report);
         for (String key : new String[]{"A", "B", "D", "K"}) {
             assertTrue("export " + key + " falhou: " + report.getJSONObject(key).optString("error"), report.getJSONObject(key).optBoolean("ok"));

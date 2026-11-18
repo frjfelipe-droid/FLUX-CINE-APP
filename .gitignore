@@ -4,5 +4,7 @@ android/build/
 android/.gradle/
 android/local.properties
 www/media/
-android/app/src/main/assets/vosk-pt/
+android/app/src/main/assets/whisper/
+android/app/src/main/cpp/whisper.cpp/
+android/app/.cxx/
 android/app/src/androidTest/assets/test.mp4

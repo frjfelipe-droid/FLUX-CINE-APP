@@ -10,12 +10,16 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        ndk { abiFilters 'arm64-v8a', 'x86_64' }
+        externalNativeBuild { cmake { arguments '-DANDROID_STL=c++_shared'; cppFlags '-O3' } }
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    externalNativeBuild { cmake { path 'src/main/cpp/CMakeLists.txt'; version '3.22.1' } }
+    androidResources { noCompress 'bin' }
     buildTypes {
         release {
             minifyEnabled false
@@ -42,12 +46,10 @@ dependencies {
     androidTestImplementation "androidx.test:runner:1.6.2"
     implementation project(':capacitor-cordova-android-plugins')
 
-    // FLUX CINE: edição de vídeo e reconhecimento de voz no aparelho
+    // FLUX CINE: edição de vídeo e (a voz é ouvida pelo Whisper nativo em src/main/cpp)
     implementation 'androidx.media3:media3-transformer:1.9.0'
     implementation 'androidx.media3:media3-effect:1.9.0'
     implementation 'androidx.media3:media3-common:1.9.0'
-    implementation 'com.alphacephei:vosk-android:0.3.47@aar'
-    implementation 'net.java.dev.jna:jna:5.13.0@aar'
 }
 
 apply from: 'capacitor.build.gradle'

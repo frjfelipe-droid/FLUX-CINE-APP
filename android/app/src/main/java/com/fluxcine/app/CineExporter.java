@@ -99,6 +99,7 @@ final class CineExporter {
         CineSpec spec = CineSpec.from(ctx, o);
         JSONArray segs = o.getJSONArray("segments");
         CineRenderer renderer = new CineRenderer(spec);
+        CineGrade grade = o.optJSONObject("grade") != null ? new CineGrade(o.getJSONObject("grade")) : null;
         List<EditedMediaItem> items = new ArrayList<>();
         long globalUs = 0;
         for (int i = 0; i < segs.length(); i++) {
@@ -112,7 +113,10 @@ final class CineExporter {
             List<Effect> video = new ArrayList<>();
             video.add(FrameDropEffect.createDefaultFrameDropEffect(30f));
             video.add(Presentation.createForWidthAndHeight(spec.outW, spec.outH, Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP));
+            float zoom = (float) s.optDouble("zoom", 1);
+            if (zoom > 1.001f) video.add(new androidx.media3.effect.ScaleAndRotateTransformation.Builder().setScale(zoom, zoom).build());
             if (spec.finalStart >= 0 && (globalUs + durUs) / 1e6 > spec.finalStart) video.add(new ImpactZoom(globalUs, spec.finalStart));
+            if (grade != null) video.add(grade);
             video.add(new OverlayEffect(ImmutableList.<TextureOverlay>of(new CineOverlay(renderer, globalUs))));
             EditedMediaItem.Builder b = new EditedMediaItem.Builder(mi).setEffects(new Effects(ImmutableList.<AudioProcessor>of(), video));
             if (s.optBoolean("removeAudio", false)) b.setRemoveAudio(true);

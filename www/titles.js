@@ -7,9 +7,18 @@
   var W = 1080, H = 1920;
   var YEAR = String(new Date().getFullYear());
   var VIDS = [39878, 1240, 39765, 1232, 39875, 1238];
+  var D = new Date(), DATE = ('0' + D.getDate()).slice(-2) + '.' + ('0' + (D.getMonth() + 1)).slice(-2) + '.' + D.getFullYear();
 
   /* 15 famílias × 2 cores = 30 modelos */
   var DEFS = [
+    ['paraiso', 'Paraíso Vertical', 'título deitado + assinatura', { c: '#F3E28C' }, 'Paraíso Pêssego', { c: '#FFD9C2' }],
+    ['verao', 'Arte do Verão', 'serifa condensada + script', { c: '#E8432D', a: '#E8432D' }, 'Verão Branco', { c: '#FFFFFF', a: '#FFD21F' }],
+    ['domingo', 'Domingo', 'bloco + letra gigante', { c: '#FF6A13', a: '#FFFFFF' }, 'Domingo Lima', { c: '#C6FF3D', a: '#FFFFFF' }],
+    ['alem', 'Além', 'pôster gigante', { c: '#F7C21B' }, 'Além Branco', { c: '#FFFFFF' }],
+    ['vlog', 'Vlog de Viagem', 'título em arco', { c: '#F5C842', a: '#3A2A00' }, 'Vlog Creme', { c: '#F3E6C9', a: '#2A1A0A' }],
+    ['chamada', 'Última Chamada', 'filme romântico', { c: '#F2DEB8' }, 'Chamada Branca', { c: '#FFFFFF' }],
+    ['marcador', 'Marcador', 'escrito à mão', { c: '#F28C28' }, 'Marcador Amarelo', { c: '#FFE14D' }],
+    ['tudo', 'Tudo Passa', 'serifa elegante', { c: '#FFFFFF' }, 'Tudo Passa Creme', { c: '#FFF3D6' }],
     ['classico', 'Clássico Dourado', 'serifa de cinema', { c: '#F2D13A' }, 'Clássico Prata', { c: '#E7E7EA' }],
     ['camp', 'Neon Camp', 'bloco + assinatura', { c: '#FFFFFF', a: '#D4FF3A' }, 'Camp Rosa', { c: '#FFFFFF', a: '#FF5FA2' }],
     ['escape', 'Escape', 'viagem e lifestyle', { c: '#FFD21F', a: '#FFFFFF' }, 'Escape Oceano', { c: '#4FD1FF', a: '#FFFFFF' }],
@@ -27,6 +36,8 @@
     ['impacto', 'Impacto', 'gigante e direto', { c: '#FFFFFF', a: '#FF3B30' }, 'Impacto Azul', { c: '#FFFFFF', a: '#2D7BFF' }]
   ];
   var DEMO = {
+    paraiso: ['Even the sun sets', 'paradise'], verao: ['The art summertime', 'of'], domingo: ['Sunday', 'Service'], alem: ['Beyond', 'um experimento visual sobre horizontes'],
+    vlog: ['Canada Vlog', 'world tour · episódio 3'], chamada: ['The Last Call', 'uma experiência cinematográfica'], marcador: ['Nothing ever does', 'um filme'], tudo: ['everything goes.', 'certamente, um dia vai passar'],
     classico: ['Cinematic', 'Simples, mas marcante'], camp: ['Midyear', 'Camp'], escape: ['One Day', 'escape'], insano: ['Insane', 'Novo lançamento'],
     paladar: ['Taste', 'Uma experiência'], retro: ['Merman', 'Um curta original'], neon: ['Noite', 'aberto até tarde'], minimal: ['Essencial', 'menos é mais'],
     caixa: ['Promoção', 'só esta semana'], glitch: ['Reset', 'nova fase'], maquina: ['Você sabia?', 'o segredo é simples'], empilhado: ['Pare de errar', 'veja isso'],
@@ -60,6 +71,120 @@
     var title = (tx.title || '').trim() || 'Seu título', sub = (tx.sub || '').trim(), brand = (tx.brand || '').trim() || 'FLUX CINE';
     var L = [], s, y;
     switch (m.fam) {
+      case 'paraiso': {
+        L.push({ type: 'dim', alpha: 0.25, anim: A('fade', 0, 0.5) });
+        var scr = cap(title), sz = fit(scr, 'GreatVibes-400', 1500, 300);
+        L.push(T({ text: scr, font: 'GreatVibes-400', size: sz, x: 640, y: 960, color: C, rot: 90, anim: A('reveal', 0.1, 1.1) }));
+        var bw = (sub || brand).toLowerCase(), bs = fit(bw, 'Poppins-800', 1400, 230, 1, -0.03);
+        L.push(T({ text: bw, font: 'Poppins-800', size: bs, x: 640 - sz * 0.62, y: 960, color: C, ls: -0.03, rot: 90, anim: A('blur', 0.5, 0.8) }));
+        [['UM VÍDEO', 200], ['DE', 960], [up(brand), 1720]].forEach(function (q, k) { L.push(T({ text: q[0], font: 'Inter-400', size: 26, x: 150, y: q[1], color: C, rot: 90, anim: A('fade', 0.7 + k * 0.08, 0.5) })); });
+        [['FLUX', 200], ['CINE', 960], [YEAR, 1720]].forEach(function (q, k) { L.push(T({ text: q[0], font: 'Inter-400', size: 26, x: 930, y: q[1], color: C, rot: 90, anim: A('fade', 0.7 + k * 0.08, 0.5) })); });
+        L.push({ type: 'line', x1: 520, y1: 120, x2: 560, y2: 120, w: 2, color: C, anim: A('draw', 0.9, 0.5) });
+        L.push({ type: 'line', x1: 520, y1: 1800, x2: 560, y2: 1800, w: 2, color: C, anim: A('draw', 0.9, 0.5) });
+        break;
+      }
+      case 'verao': {
+        L.push({ type: 'dim', alpha: 0.12, anim: A('fade', 0, 0.5) });
+        var tw = up(title).split(/\s+/).filter(Boolean), half = Math.ceil(tw.length / 2), l1 = tw.slice(0, half).join(' '), l2 = tw.slice(half).join(' ') || l1;
+        if (tw.length < 2) { l1 = up(title); l2 = ''; }
+        var s1 = Math.min(fit(l1, 'PlayfairDisplay-900', 900, 240, 0.62, 0), l2 ? fit(l2, 'PlayfairDisplay-900', 900, 240, 0.62, 0) : 999);
+        y = l2 ? 900 : 980;
+        L.push(T({ text: brand, font: 'CormorantGaramond-600i', size: 44, x: 540, y: y - s1 * 0.95, color: C, anim: A('fade', 0.5, 0.6) }));
+        L.push(T({ text: l1, font: 'PlayfairDisplay-900', size: s1, x: 540, y: y, color: C, sx: 0.62, anim: A('rise', 0.1, 0.8) }));
+        if (l2) L.push(T({ text: l2, font: 'PlayfairDisplay-900', size: s1, x: 540, y: y + s1 * 0.86, color: C, sx: 0.62, anim: A('rise', 0.25, 0.8) }));
+        if (sub) L.push(T({ text: sub.toLowerCase(), font: 'GreatVibes-400', size: fit(sub.toLowerCase(), 'GreatVibes-400', 700, Math.round(s1 * 0.8)), x: 560, y: y + s1 * 0.42, color: AC, rot: -8, shadow: { dx: 0, dy: 0, color: '#F6EFE6', sw: 7 }, anim: A('reveal', 0.6, 0.8) }));
+        L.push(T({ text: 'por ' + brand.toLowerCase(), font: 'CormorantGaramond-600i', size: 40, x: 540, y: y + (l2 ? s1 * 0.86 : 0) + 110, color: C, anim: A('fade', 0.8, 0.6) }));
+        break;
+      }
+      case 'domingo': {
+        L.push({ type: 'dim', alpha: 0.2, anim: A('fade', 0, 0.5) });
+        var dw = up(title).split(/\s+/).filter(Boolean), w1 = dw[0] || 'TÍTULO', w2 = dw.slice(1).join(' ');
+        if (!w2 && w1.length > 3) { w2 = w1.slice(Math.ceil(w1.length / 2)); w1 = w1.slice(0, Math.ceil(w1.length / 2)); }
+        var bsz = fit(w1.slice(1), 'ArchivoBlack-400', 640, 300, 1, -0.03), big = bsz * 1.32;
+        var bigW = width(w1.charAt(0), 'DMSerifDisplay-400', big), restW = width(w1.slice(1), 'ArchivoBlack-400', bsz) * 0.97;
+        var x0 = 540 - (bigW + restW) / 2; y = 900;
+        L.push(T({ text: w1.charAt(0), font: 'DMSerifDisplay-400', size: big, x: x0, y: y + bsz * 0.04, align: 'left', color: C, anim: A('zoom', 0.05, 0.6) }));
+        L.push(T({ text: w1.slice(1), font: 'ArchivoBlack-400', size: bsz, x: x0 + bigW, y: y, align: 'left', color: C, ls: -0.03, anim: A('slideR', 0.15, 0.6) }));
+        if (w2) L.push(T({ text: w2, font: 'ArchivoBlack-400', size: fit(w2, 'ArchivoBlack-400', 760, bsz, 1, -0.03), x: x0, y: y + bsz * 0.98, align: 'left', color: C, ls: -0.03, anim: A('slideL', 0.25, 0.6) }));
+        if (sub) L.push(T({ text: cap(sub), font: 'GreatVibes-400', size: fit(cap(sub), 'GreatVibes-400', 760, Math.round(bsz * 0.9)), x: 560, y: y + bsz * 0.45, color: AC, rot: -6, anim: A('reveal', 0.6, 0.9) }));
+        L.push(T({ text: up(brand), font: 'Inter-700', size: 24, x: 1000, y: y - bsz * 0.45, align: 'right', color: '#FFFFFF', anim: A('fade', 0.8, 0.5) }));
+        L.push(T({ text: '• • • • •', font: 'Inter-700', size: 26, x: 1000, y: y + bsz * 0.62, align: 'right', color: '#FFFFFF', ls: 0.1, anim: A('fade', 0.9, 0.5) }));
+        break;
+      }
+      case 'alem': {
+        L.push({ type: 'dim', alpha: 0.1, anim: A('fade', 0, 0.5) });
+        s = fit(up(title), 'Anton-400', 1020, 560, 1, -0.02); y = 760 + s * 0.4;
+        L.push(T({ text: '© SÉRIE ' + up(brand), font: 'Inter-700', size: 20, x: 50, y: y - s * 0.86 - 30, align: 'left', color: C, anim: A('fade', 0.5, 0.5) }));
+        if (sub) L.push(T({ text: '“' + up(sub) + '”', font: 'Inter-400', size: fit('“' + up(sub) + '”', 'Inter-400', 520, 20), x: 540, y: y - s * 0.86 - 30, color: C, anim: A('fade', 0.6, 0.5) }));
+        L.push(T({ text: DATE, font: 'Inter-400', size: 30, x: 1030, y: y - s * 0.86 - 30, align: 'right', color: C, anim: A('fade', 0.7, 0.5) }));
+        L.push(T({ text: up(title), font: 'Anton-400', size: s, x: 540, y: y, color: C, ls: -0.02, anim: A('stretch', 0.1, 0.8) }));
+        L.push({ type: 'oval', cx: 900, cy: 1700, rx: 110, ry: 62, w: 3, color: C, anim: A('fade', 1.0, 0.5) });
+        L.push(T({ text: 'UM ESTUDO', font: 'Inter-700', size: 20, x: 900, y: 1694, color: C, anim: A('fade', 1.0, 0.5) }));
+        L.push(T({ text: 'ORIGINAL', font: 'Inter-700', size: 20, x: 900, y: 1722, color: C, anim: A('fade', 1.05, 0.5) }));
+        break;
+      }
+      case 'vlog': {
+        L.push({ type: 'dim', alpha: 0.3, anim: A('fade', 0, 0.5) });
+        s = fit(up(title), 'DMSerifDisplay-400', 900, 170, 1, 0); y = 900;
+        L.push(T({ text: up(title), font: 'DMSerifDisplay-400', size: s, x: 540, y: y, color: C, arc: 1500, shadow: { dx: 0, dy: 9, color: AC, sw: 0 }, anim: A('pop', 0.1, 0.8) }));
+        if (sub) {
+          var sp = up(sub).split('·'), a1 = (sp[0] || '').trim(), a2 = (sp[1] || '').trim();
+          L.push(T({ text: a1, font: 'DMSerifDisplay-400', size: fit(a1, 'DMSerifDisplay-400', 600, 64), x: 600, y: y + 120, color: C, shadow: { dx: 0, dy: 5, color: AC, sw: 0 }, anim: A('rise', 0.5, 0.6) }));
+          if (a2) L.push(T({ text: a2, font: 'DMSerifDisplay-400', size: fit(a2, 'DMSerifDisplay-400', 600, 64), x: 600, y: y + 190, color: C, shadow: { dx: 0, dy: 5, color: AC, sw: 0 }, anim: A('rise', 0.6, 0.6) }));
+        }
+        L.push(T({ text: 'DIRIGIDO POR ' + up(brand), font: 'CormorantGaramond-600i', size: 30, x: 60, y: 140, align: 'left', color: C, anim: A('fade', 0.8, 0.5) }));
+        L.push(T({ text: 'COM FLUX CINE', font: 'CormorantGaramond-600i', size: 30, x: 1020, y: 140, align: 'right', color: C, anim: A('fade', 0.85, 0.5) }));
+        L.push(T({ text: 'SÉRIE ' + YEAR, font: 'CormorantGaramond-600i', size: 30, x: 60, y: 1800, align: 'left', color: C, anim: A('fade', 0.9, 0.5) }));
+        L.push(T({ text: 'POR ' + up(brand), font: 'CormorantGaramond-600i', size: 30, x: 1020, y: 1800, align: 'right', color: C, anim: A('fade', 0.95, 0.5) }));
+        break;
+      }
+      case 'chamada': {
+        L.push({ type: 'dim', alpha: 0.35, anim: A('fade', 0, 0.5) });
+        s = fit(cap(title), 'CormorantGaramond-500', 1000, 230, 0.86, -0.01); y = 1180;
+        L.push(T({ text: 'UM CURTA', font: 'Inter-700', size: 20, x: 60, y: 160, align: 'left', color: C, anim: A('fade', 0.6, 0.5) }));
+        L.push(T({ text: 'EM PARCERIA COM FLUX CINE', font: 'Inter-700', size: 20, x: 540, y: 160, color: C, anim: A('fade', 0.65, 0.5) }));
+        L.push(T({ text: '@' + brand.toLowerCase().replace(/\s+/g, ''), font: 'Inter-700', size: 20, x: 1020, y: 160, align: 'right', color: C, anim: A('fade', 0.7, 0.5) }));
+        L.push(T({ text: cap(title), font: 'CormorantGaramond-500', size: s, x: 540, y: y, color: C, sx: 0.86, ls: -0.01, anim: A('blur', 0.1, 1.0) }));
+        var line2 = up(sub || 'uma experiência cinematográfica') + ' POR ' + up(brand);
+        L.push(T({ text: line2, font: 'Oswald-700', size: fit(line2, 'Oswald-700', 960, 46, 1, 0.02), x: 540, y: y + 72, color: C, ls: 0.02, anim: A('track', 0.5, 0.7) }));
+        L.push(T({ text: 'AVISO: EMOÇÃO À FRENTE', font: 'Inter-700', size: 18, x: 540, y: y + 120, color: C, anim: A('fade', 0.9, 0.5) }));
+        L.push(T({ text: 'AMOR, PERDA E SAUDADE SE MISTURAM DE UM JEITO QUE VAI MEXER COM VOCÊ.', font: 'Inter-400', size: 16, x: 540, y: y + 148, color: C, anim: A('fade', 1.0, 0.5) }));
+        break;
+      }
+      case 'marcador': {
+        L.push({ type: 'dim', alpha: 0.3, anim: A('fade', 0, 0.5) });
+        var mw = title.split(/\s+/).filter(Boolean), m1 = (mw[0] || '').toUpperCase(), m2 = mw.slice(1).join(' ');
+        var ms = Math.min(fit(m1, 'PermanentMarker-400', 960, 270), m2 ? fit(m2, 'PermanentMarker-400', 980, 270) : 999); y = 840;
+        L.push(T({ text: 'UM FILME DE ' + up(brand), font: 'Inter-700', size: 22, x: 540, y: y - ms * 1.0, color: '#FFFFFF', ls: 0.12, anim: A('fade', 0.5, 0.5) }));
+        L.push(T({ text: m1, font: 'PermanentMarker-400', size: ms, x: 540, y: y, color: C, anim: A('reveal', 0.1, 0.8) }));
+        if (m2) L.push(T({ text: m2, font: 'PermanentMarker-400', size: ms, x: 560, y: y + ms * 0.95, color: C, anim: A('reveal', 0.5, 0.8) }));
+        var yb = y + (m2 ? ms * 0.95 : 0) + 150;
+        [[up(brand).split(' ')[0] || 'SUA', 300], ['FLUX', 540], [YEAR, 780]].forEach(function (q, k) { L.push(T({ text: q[0], font: 'Inter-700', size: 26, x: q[1], y: yb, color: '#FFFFFF', anim: A('fade', 0.9 + k * 0.08, 0.5) })); });
+        [[(up(brand).split(' ')[1] || 'MARCA'), 300], ['CINE', 540], ['ORIGINAL', 780]].forEach(function (q, k) { L.push(T({ text: q[0], font: 'Inter-700', size: 26, x: q[1], y: yb + 32, color: '#FFFFFF', anim: A('fade', 0.9 + k * 0.08, 0.5) })); });
+        L.push({ type: 'box', x: 90, y: yb + 90, w: 56, h: 56, color: '#FFFFFF', r: 4, anim: A('fade', 1.1, 0.5) });
+        L.push(T({ text: 'R', font: 'ArchivoBlack-400', size: 40, x: 118, y: yb + 134, color: '#111111', anim: A('fade', 1.1, 0.5) }));
+        L.push(T({ text: 'RESTRITO · ' + up(sub || 'cenas de muita emoção'), font: 'Inter-700', size: 18, x: 164, y: yb + 124, align: 'left', color: '#FFFFFF', anim: A('fade', 1.15, 0.5) }));
+        break;
+      }
+      case 'tudo': {
+        L.push({ type: 'dim', alpha: 0.18, anim: A('fade', 0, 0.5) });
+        var tt = title.toLowerCase(), cut = Math.max(1, Math.round(tt.length * 0.62));
+        var sp2 = tt.lastIndexOf(' ', cut); if (sp2 > 2) cut = sp2 + 1;
+        var p1 = tt.slice(0, cut).replace(/\s+$/, ''), p2 = tt.slice(cut);
+        var ts = 220;
+        while (ts > 40 && width(p1, 'CormorantGaramond-500', ts) + width(p2, 'CormorantGaramond-600i', ts) > 1000) ts -= 6;
+        var w1x = width(p1, 'CormorantGaramond-500', ts), w2x = width(p2, 'CormorantGaramond-600i', ts), xs = 540 - (w1x + w2x) / 2; y = 1010;
+        L.push(T({ text: p1, font: 'CormorantGaramond-500', size: ts, x: xs, y: y, align: 'left', color: C, anim: A('blur', 0.1, 0.9) }));
+        L.push(T({ text: p2, font: 'CormorantGaramond-600i', size: ts, x: xs + w1x, y: y, align: 'left', color: C, anim: A('blur', 0.35, 0.9) }));
+        if (sub) {
+          var sw = up(sub).split(','), t1 = (sw[0] || '').trim(), t2 = sw.slice(1).join(',').trim();
+          L.push(T({ text: t1, font: 'Inter-400', size: 22, x: 540, y: y - ts * 0.95, color: C, anim: A('fade', 0.6, 0.6) }));
+          if (t2) L.push(T({ text: t2, font: 'Inter-400', size: 22, x: 540, y: y - ts * 0.95 + 30, color: C, anim: A('fade', 0.65, 0.6) }));
+        }
+        L.push(T({ text: 'FAIXA 01', font: 'Inter-400', size: 24, x: 140, y: 1660, align: 'left', color: C, anim: A('fade', 0.9, 0.6) }));
+        L.push(T({ text: up(brand), font: 'Inter-400', size: 24, x: 940, y: 1660, align: 'right', color: C, anim: A('fade', 0.95, 0.6) }));
+        break;
+      }
       case 'classico': {
         var lc = C === '#F2D13A' ? 'rgba(242,209,58,.7)' : 'rgba(231,231,234,.7)';
         L.push({ type: 'dim', alpha: 0.42, anim: A('fade', 0, 0.5) });
@@ -220,6 +345,17 @@
     if (!lsPx || hasLS) { if (hasLS) ctx.letterSpacing = (lsPx || 0) + 'px'; mode === 's' ? ctx.strokeText(text, x, y) : ctx.fillText(text, x, y); if (hasLS) ctx.letterSpacing = '0px'; return; }
     for (var i = 0; i < text.length; i++) { var ch = text[i]; mode === 's' ? ctx.strokeText(ch, x, y) : ctx.fillText(ch, x, y); x += ctx.measureText(ch).width + lsPx; }
   }
+  /* texto em arco (centro do círculo abaixo da linha): cada letra gira junto */
+  function arcText(ctx, text, r, lsPx, ox, oy) {
+    var tot = 0, i;
+    for (i = 0; i < text.length; i++) tot += ctx.measureText(text[i]).width + lsPx;
+    var x = -tot / 2;
+    for (i = 0; i < text.length; i++) {
+      var cw = ctx.measureText(text[i]).width + lsPx, a = (x + cw / 2) / r;
+      ctx.save(); ctx.translate(ox + r * Math.sin(a), oy + r - r * Math.cos(a)); ctx.rotate(a); ctx.fillText(text[i], -cw / 2 + lsPx / 2, 0); ctx.restore();
+      x += cw;
+    }
+  }
   function rrect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r); ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h); ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r); ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath(); }
 
   function draw(ctx, layers, t, tEnd, tf) {
@@ -281,12 +417,16 @@
         ctx.globalAlpha = alpha * 0.85; ctx.fillStyle = el.rgb[0]; fillSpaced(ctx, text, lx - off, 0, lsPx, 'f');
         ctx.fillStyle = el.rgb[1]; fillSpaced(ctx, text, lx + off, 0, lsPx, 'f'); ctx.globalAlpha = alpha;
       }
-      if (el.shadow) {
+      if (el.shadow && !el.arc) {
         ctx.fillStyle = el.shadow.color; ctx.strokeStyle = el.shadow.color;
         if (el.shadow.sw) { ctx.lineWidth = el.shadow.sw * 2; ctx.lineJoin = 'round'; fillSpaced(ctx, text, lx, 0, lsPx, 's'); }
         fillSpaced(ctx, text, lx + el.shadow.dx / el.sx, el.shadow.dy, lsPx, 'f');
       }
-      if (el.outline) { ctx.strokeStyle = el.color; ctx.lineWidth = el.outline; ctx.lineJoin = 'round'; fillSpaced(ctx, text, lx, 0, lsPx, 's'); }
+      if (el.arc) {
+        if (el.shadow) { ctx.fillStyle = el.shadow.color; arcText(ctx, text, el.arc, lsPx, el.shadow.dx / el.sx, el.shadow.dy); }
+        ctx.fillStyle = el.color; arcText(ctx, text, el.arc, lsPx, 0, 0);
+      }
+      else if (el.outline) { ctx.strokeStyle = el.color; ctx.lineWidth = el.outline; ctx.lineJoin = 'round'; fillSpaced(ctx, text, lx, 0, lsPx, 's'); }
       else { ctx.fillStyle = el.color; fillSpaced(ctx, text, lx, 0, lsPx, 'f'); }
       if (el.cursor && an.k === 'type' && (p < 1 || Math.floor(t * 2.5) % 2 === 0)) {
         ctx.filter = 'none'; ctx.font = el.size + 'px "' + el.font + '"';
@@ -351,7 +491,7 @@
     ctx.restore();
   }
 
-  var FAMS = ['DMSerifDisplay-400', 'GreatVibes-400', 'Yellowtail-400', 'BodoniModa-900', 'Shrikhand-400', 'PlayfairDisplay-900', 'ArchivoBlack-400', 'Anton-400', 'Inter-400', 'Inter-700', 'BebasNeue-400', 'Unbounded-800', 'SpaceGrotesk-700', 'Caveat-700', 'PlayfairDisplay-600i', 'SpaceMono-700', 'Montserrat-800', 'Poppins-800', 'Oswald-700', 'Bangers-400'];
+  var FAMS = ['CormorantGaramond-500', 'CormorantGaramond-600i', 'PermanentMarker-400', 'DMSerifDisplay-400', 'GreatVibes-400', 'Yellowtail-400', 'BodoniModa-900', 'Shrikhand-400', 'PlayfairDisplay-900', 'ArchivoBlack-400', 'Anton-400', 'Inter-400', 'Inter-700', 'BebasNeue-400', 'Unbounded-800', 'SpaceGrotesk-700', 'Caveat-700', 'PlayfairDisplay-600i', 'SpaceMono-700', 'Montserrat-800', 'Poppins-800', 'Oswald-700', 'Bangers-400'];
   function loadFonts() {
     if (!document.fonts || !document.fonts.load) return Promise.resolve();
     return Promise.all(FAMS.map(function (f) { return document.fonts.load('40px "' + f + '"').catch(function () {}); }));

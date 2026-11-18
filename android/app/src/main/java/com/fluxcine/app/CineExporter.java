@@ -32,9 +32,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Monta o vídeo final: corta e junta os trechos (com velocidade: rápido, lento, pausa),
- * aplica a camada gráfica e o zoom de impacto, mistura a trilha de efeitos e exporta MP4.
- * Chamar na thread principal.
+ * Monta o vídeo final. Trechos com velocidade (chips rápidos, lentos, pausas) são gravados antes,
+ * um por um; depois tudo é juntado em velocidade normal com título, legenda, zoom de impacto e
+ * a trilha de efeitos sonoros. Chamar na thread principal.
  */
 final class CineExporter {
     interface Listener {
@@ -45,26 +45,70 @@ final class CineExporter {
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private Transformer transformer;
+    private boolean cancelled;
 
     void export(Context ctx, JSONObject o, File out, Listener l) throws Exception {
+        JSONArray segs = o.getJSONArray("segments");
+        List<Integer> speedIdx = new ArrayList<>();
+        for (int i = 0; i < segs.length(); i++) {
+            double sp = segs.getJSONObject(i).optDouble("speed", 1);
+            if (Math.abs(sp - 1) > 0.001) speedIdx.add(i);
+        }
+        if (speedIdx.isEmpty()) { exportFinal(ctx, o, out, 0, l); return; }
+        prerender(ctx, o, speedIdx, 0, out, l);
+    }
+
+    /** Grava o trecho speedIdx[k] já com a velocidade aplicada e troca na lista por esse arquivo. */
+    private void prerender(Context ctx, JSONObject o, List<Integer> speedIdx, int k, File out, Listener l) {
+        try {
+            if (cancelled) return;
+            if (k >= speedIdx.size()) { exportFinal(ctx, o, out, 40, l); return; }
+            JSONObject s = o.getJSONArray("segments").getJSONObject(speedIdx.get(k));
+            CineSpec spec = CineSpec.from(ctx, o);
+            long startMs = s.getLong("startMs"), endMs = Math.max(startMs + 40, s.getLong("endMs"));
+            float speed = (float) s.optDouble("speed", 1);
+            MediaItem mi = new MediaItem.Builder()
+                    .setUri(Uri.fromFile(new File(s.getString("path"))))
+                    .setClippingConfiguration(new MediaItem.ClippingConfiguration.Builder().setStartPositionMs(startMs).setEndPositionMs(endMs).build())
+                    .build();
+            List<Effect> video = new ArrayList<>();
+            video.add(FrameDropEffect.createDefaultFrameDropEffect(30f));
+            video.add(Presentation.createForWidthAndHeight(spec.outW, spec.outH, Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP));
+            EditedMediaItem.Builder b = new EditedMediaItem.Builder(mi).setEffects(new Effects(ImmutableList.<AudioProcessor>of(), video)).setSpeed(new ConstSpeed(speed));
+            if (s.optBoolean("removeAudio", false)) b.setRemoveAudio(true);
+            final File piece = new File(ctx.getCacheDir(), "piece_" + k + ".mp4");
+            Composition c = new Composition.Builder(EditedMediaItemSequence.withAudioAndVideoFrom(ImmutableList.of(b.build()))).setHdrMode(Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL).build();
+            int pFrom = 40 * k / speedIdx.size(), pTo = 40 * (k + 1) / speedIdx.size();
+            run(ctx, c, piece, pFrom, pTo, new Listener() {
+                @Override public void onProgress(int p) { l.onProgress(p); }
+                @Override public void onDone(long d) {
+                    try {
+                        long ms = d > 0 ? d : Math.round((endMs - startMs) / speed);
+                        s.put("path", piece.getAbsolutePath()).put("startMs", 0).put("endMs", ms).put("speed", 1).put("removeAudio", false);
+                        prerender(ctx, o, speedIdx, k + 1, out, l);
+                    } catch (Exception e) { l.onError(e.getMessage()); }
+                }
+                @Override public void onError(String m) { l.onError(m); }
+            });
+        } catch (Exception e) {
+            l.onError("Falha ao preparar os chips: " + e.getMessage());
+        }
+    }
+
+    private void exportFinal(Context ctx, JSONObject o, File out, int pFrom, Listener l) throws Exception {
         CineSpec spec = CineSpec.from(ctx, o);
         JSONArray segs = o.getJSONArray("segments");
-
         CineRenderer renderer = new CineRenderer(spec);
         List<EditedMediaItem> items = new ArrayList<>();
         long globalUs = 0;
-        boolean hasSpeed = false;
         for (int i = 0; i < segs.length(); i++) {
             JSONObject s = segs.getJSONObject(i);
-            long startMs = s.getLong("startMs"), endMs = Math.max(s.getLong("startMs") + 40, s.getLong("endMs"));
-            float speed = (float) s.optDouble("speed", 1);
-            if (speed <= 0) speed = 1;
+            long startMs = s.getLong("startMs"), endMs = Math.max(startMs + 40, s.getLong("endMs"));
             MediaItem mi = new MediaItem.Builder()
                     .setUri(Uri.fromFile(new File(s.getString("path"))))
-                    .setClippingConfiguration(new MediaItem.ClippingConfiguration.Builder()
-                            .setStartPositionMs(startMs).setEndPositionMs(endMs).build())
+                    .setClippingConfiguration(new MediaItem.ClippingConfiguration.Builder().setStartPositionMs(startMs).setEndPositionMs(endMs).build())
                     .build();
-            long durUs = (long) ((endMs - startMs) * 1000L / speed);
+            long durUs = (endMs - startMs) * 1000L;
             List<Effect> video = new ArrayList<>();
             video.add(FrameDropEffect.createDefaultFrameDropEffect(30f));
             video.add(Presentation.createForWidthAndHeight(spec.outW, spec.outH, Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP));
@@ -72,7 +116,6 @@ final class CineExporter {
             video.add(new OverlayEffect(ImmutableList.<TextureOverlay>of(new CineOverlay(renderer, globalUs))));
             EditedMediaItem.Builder b = new EditedMediaItem.Builder(mi).setEffects(new Effects(ImmutableList.<AudioProcessor>of(), video));
             if (s.optBoolean("removeAudio", false)) b.setRemoveAudio(true);
-            if (Math.abs(speed - 1f) > 0.001f) { b.setSpeed(new ConstSpeed(speed)); hasSpeed = true; }
             items.add(b.build());
             globalUs += durUs;
         }
@@ -87,45 +130,27 @@ final class CineExporter {
             if (spec.finalStart > 0.3) ev.add(new long[]{(long) (spec.finalStart * 1e6), SfxSynth.IMPACT});
             if (!spec.cta.isEmpty()) ev.add(new long[]{(long) (spec.ctaStart() * 1e6), SfxSynth.POP});
         }
-        final File wav = ev.isEmpty() ? null : SfxSynth.writeTrack(new File(ctx.getCacheDir(), "sfx-track.wav"), ev, spec.total);
-
-        if (wav != null && !hasSpeed) {
-            // uma passada: vídeo + trilha de efeitos juntos
-            run(ctx, new Composition.Builder(mainSeq, sfxSequence(wav)).setHdrMode(Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL).build(), out, 0, 100, l, null);
-        } else if (wav != null) {
-            // duas passadas (trechos com velocidade): 1) cortes + gráficos, 2) mistura os efeitos copiando o vídeo
-            final File tmp = new File(ctx.getCacheDir(), "pass1.mp4");
-            tmp.delete();
-            run(ctx, new Composition.Builder(mainSeq).setHdrMode(Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL).build(), tmp, 0, 90, l, () -> mixSfx(ctx, tmp, wav, out, true, l));
+        Composition.Builder cb;
+        if (!ev.isEmpty()) {
+            File wav = SfxSynth.writeTrack(new File(ctx.getCacheDir(), "sfx-track.wav"), ev, globalUs / 1e6);
+            cb = new Composition.Builder(mainSeq, EditedMediaItemSequence.withAudioFrom(ImmutableList.of(new EditedMediaItem.Builder(MediaItem.fromUri(Uri.fromFile(wav))).build())));
         } else {
-            run(ctx, new Composition.Builder(mainSeq).setHdrMode(Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL).build(), out, 0, 100, l, null);
+            cb = new Composition.Builder(mainSeq);
         }
+        run(ctx, cb.setHdrMode(Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL).build(), out, pFrom, 100, new Listener() {
+            @Override public void onProgress(int p) { l.onProgress(p); }
+            @Override public void onDone(long d) { cleanupPieces(ctx); l.onDone(d); }
+            @Override public void onError(String m) { cleanupPieces(ctx); l.onError(m); }
+        });
     }
 
-    private static EditedMediaItemSequence sfxSequence(File wav) {
-        return EditedMediaItemSequence.withAudioFrom(ImmutableList.of(new EditedMediaItem.Builder(MediaItem.fromUri(Uri.fromFile(wav))).build()));
+    private static void cleanupPieces(Context ctx) {
+        File[] fs = ctx.getCacheDir().listFiles();
+        if (fs != null) for (File f : fs) if (f.getName().startsWith("piece_")) f.delete();
     }
 
-    private void mixSfx(Context ctx, File pass1, File wav, File out, boolean transmux, Listener l) {
-        try {
-            EditedMediaItemSequence v = EditedMediaItemSequence.withAudioAndVideoFrom(ImmutableList.of(new EditedMediaItem.Builder(MediaItem.fromUri(Uri.fromFile(pass1))).build()));
-            Composition c = new Composition.Builder(v, sfxSequence(wav)).setTransmuxVideo(transmux).build();
-            run(ctx, c, out, 90, 100, new Listener() {
-                @Override public void onProgress(int p) { l.onProgress(p); }
-                @Override public void onDone(long d) { pass1.delete(); l.onDone(d); }
-                @Override public void onError(String m) {
-                    if (transmux) { mixSfx(ctx, pass1, wav, out, false, l); return; }
-                    // sem efeitos é melhor do que sem vídeo
-                    if (pass1.renameTo(out)) l.onDone(-1); else l.onError(m);
-                }
-            }, null);
-        } catch (Exception e) {
-            if (pass1.renameTo(out)) l.onDone(-1); else l.onError(e.getMessage());
-        }
-    }
-
-    /** Roda uma exportação; o progresso vai de pFrom a pTo. Se next != null, chama next em vez de onDone. */
-    private void run(Context ctx, Composition composition, File out, int pFrom, int pTo, Listener l, Runnable next) {
+    /** Roda uma exportação; o progresso vai de pFrom a pTo. */
+    private void run(Context ctx, Composition composition, File out, int pFrom, int pTo, Listener l) {
         main.removeCallbacksAndMessages(null);
         out.delete();
         transformer = new Transformer.Builder(ctx)
@@ -136,7 +161,7 @@ final class CineExporter {
                     public void onCompleted(Composition c, ExportResult r) {
                         main.removeCallbacksAndMessages(null);
                         transformer = null;
-                        if (next != null) next.run(); else l.onDone(r.durationMs);
+                        l.onDone(r.durationMs);
                     }
 
                     @Override
@@ -161,6 +186,7 @@ final class CineExporter {
 
     void cancel() {
         main.post(() -> {
+            cancelled = true;
             if (transformer != null) transformer.cancel();
             transformer = null;
             main.removeCallbacksAndMessages(null);

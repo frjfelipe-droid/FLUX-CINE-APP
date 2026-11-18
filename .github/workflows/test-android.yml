@@ -56,9 +56,9 @@ jobs:
           script: |
             chmod +x gradlew
             mkdir -p ../frames
-            ./gradlew connectedDebugAndroidTest --no-daemon -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true || touch ../frames/FAILED
+            ./gradlew :app:connectedDebugAndroidTest --no-daemon -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true || touch ../frames/FAILED
             adb logcat -d > ../frames/logcat.txt || true
-            adb pull /sdcard/Android/data/com.fluxcine.app/files/frames/. ../frames/ || true
+            adb pull /sdcard/Download/fluxtest/. ../frames/ || true
             ls -la ../frames
       - name: Publicar resultado do teste
         if: always()

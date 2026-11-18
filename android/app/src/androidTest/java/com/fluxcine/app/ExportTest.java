@@ -108,12 +108,19 @@ public class ExportTest {
                 .put("title", "O segredo que ninguém conta");
         report.put("B", runExport(target, b, frames, "B"));
 
-        try (OutputStream os = new FileOutputStream(new File(frames, "report.json"))) {
-            os.write(report.toString(2).getBytes("UTF-8"));
-        }
+        toDownloads(target, "report.json", "application/json", report.toString(2).getBytes("UTF-8"));
         Log.i(TAG, "report=" + report);
         assertTrue("export A falhou: " + report.getJSONObject("A").optString("error"), report.getJSONObject("A").optBoolean("ok"));
         assertTrue("export B falhou: " + report.getJSONObject("B").optString("error"), report.getJSONObject("B").optBoolean("ok"));
+    }
+
+    private static void toDownloads(Context ctx, String name, String mime, byte[] data) throws Exception {
+        android.content.ContentValues v = new android.content.ContentValues();
+        v.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, name);
+        v.put(android.provider.MediaStore.MediaColumns.MIME_TYPE, mime);
+        v.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, "Download/fluxtest");
+        android.net.Uri uri = ctx.getContentResolver().insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
+        try (OutputStream os = ctx.getContentResolver().openOutputStream(uri)) { os.write(data); }
     }
 
     private JSONObject runExport(Context ctx, JSONObject spec, File frames, String tag) throws Exception {
@@ -147,14 +154,15 @@ public class ExportTest {
         r.put("duration", d);
         r.put("size", mr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH) + "x" + mr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT));
         r.put("hasAudio", mr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO));
+        r.put("rotation", mr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION));
         double[] ts = {0.35, 0.7, 1.6, d * 0.5, d - 1.6, d - 0.4};
         for (int i = 0; i < ts.length; i++) {
             Bitmap f = mr.getFrameAtTime((long) (Math.max(0, ts[i]) * 1e6), MediaMetadataRetriever.OPTION_CLOSEST);
             if (f == null) continue;
             Bitmap s = Bitmap.createScaledBitmap(f, 360, 640, true);
-            try (OutputStream os = new FileOutputStream(new File(frames, tag + "_" + i + ".jpg"))) {
-                s.compress(Bitmap.CompressFormat.JPEG, 80, os);
-            }
+            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+            s.compress(Bitmap.CompressFormat.JPEG, 80, bos);
+            toDownloads(ctx, tag + "_" + i + ".jpg", "image/jpeg", bos.toByteArray());
         }
         mr.release();
         return r;

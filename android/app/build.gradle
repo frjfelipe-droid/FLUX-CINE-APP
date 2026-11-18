@@ -40,6 +40,13 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+
+    // FLUX CINE: edição de vídeo e reconhecimento de voz no aparelho
+    implementation 'androidx.media3:media3-transformer:1.5.1'
+    implementation 'androidx.media3:media3-effect:1.5.1'
+    implementation 'androidx.media3:media3-common:1.5.1'
+    implementation 'com.alphacephei:vosk-android:0.3.47@aar'
+    implementation 'net.java.dev.jna:jna:5.13.0@aar'
 }
 
 apply from: 'capacitor.build.gradle'

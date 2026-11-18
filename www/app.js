@@ -243,7 +243,7 @@
         '<span class="wave ' + (pl ? 'on' : '') + '" aria-hidden="true">' + x.bars.map(function (h) { return '<i style="height:' + h + 'px"></i>'; }).join('') + '</span>' +
         '<span class="radio"><i></i></span></button></div>';
     }).join('');
-    var bg = S.clips.v1 && S.clips.v1.thumb ? '<img src="' + S.clips.v1.thumb + '" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.75">' : mediaTag(tpl);
+    var bg = S.clips.v1 && S.clips.v1.thumb ? '<img src="' + S.clips.v1.thumb + '" alt="" style="position:absolute;top:0;right:0;bottom:0;left:0;width:100%;height:100%;object-fit:cover;opacity:.75">' : mediaTag(tpl);
     return '<h1>Deixe com a sua cara</h1>' +
       '<div class="preview" style="background:' + tpl.bg + ';margin-top:20px">' + bg + '<div class="shade"></div>' + (tpl.lb ? '<div class="lb t" style="height:30px"></div><div class="lb b" style="height:30px"></div>' : '') +
       '<div class="ctitle" data-k="' + S.styleKey + '" style="' + fontCss(f, f.upper ? 36 : 26) + '">' + esc(autoTitle()) + '<span class="cbar" style="background:' + ORANGE + ';width:60px"></span></div></div>' +

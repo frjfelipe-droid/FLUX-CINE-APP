@@ -2,9 +2,12 @@
 (function () {
   var CAP = window.Capacitor;
   var NATIVE = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
-  var FE = NATIVE ? CAP.registerPlugin('FluxEditor') : null;
-  var APP = NATIVE ? CAP.registerPlugin('App') : null;
+  var REG = (window.capacitorExports && window.capacitorExports.registerPlugin) || (CAP && CAP.registerPlugin);
+  var FE = NATIVE && REG ? REG('FluxEditor') : null;
+  var APP = NATIVE && REG ? REG('App') : null;
+  if (NATIVE && !FE) NATIVE = false;
   var ORANGE = '#FF7A1A';
+  function safe(p) { try { if (p && p.catch) p.catch(function () {}); } catch (e) {} }
 
   var TEMPLATES = [
     { id: 'pulse', name: 'Pulso Viral', cat: 'Reels', vibe: 'cortes rápidos', dur: '0:20', media: 1240, bg: '#0F1A06', accent: '#D4FF3A', font: 'Unbounded', w: 800, size: 15, title: 'O segredo que ninguém conta', pre: '3 erros que te fazem ', hl: 'perder', post: ' clientes', mode: 'box' },
@@ -335,11 +338,11 @@
     });
   }
   if (NATIVE) {
-    FE.addListener('transcribeProgress', function (d) { var c = S.clips[d.id]; if (c && c.status === 'listening') { c.p = d.p; updateListen(); } });
-    FE.addListener('renderProgress', function (d) {
+    safe(FE.addListener('transcribeProgress', function (d) { var c = S.clips[d.id]; if (c && c.status === 'listening') { c.p = d.p; updateListen(); } }));
+    safe(FE.addListener('renderProgress', function (d) {
       if (S.screen !== 'render') return;
       S.progress = Math.max(S.progress, Math.min(99, Math.round(d.p))); draw(true);
-    });
+    }));
   }
   var fileIn = document.getElementById('file'), pickingFor = null;
   fileIn.addEventListener('change', function () {
@@ -431,12 +434,12 @@
   });
 
   /* botão voltar do Android */
-  if (APP) APP.addListener('backButton', function () {
+  if (APP) safe(APP.addListener('backButton', function () {
     if (S.screen === 'upload') go('gallery');
     else if (S.screen === 'style') go('upload');
     else if (S.screen === 'done') go('gallery');
     else if (S.screen === 'gallery') APP.exitApp();
-  });
+  }));
 
   draw(false);
 })();

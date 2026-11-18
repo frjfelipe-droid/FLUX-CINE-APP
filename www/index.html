@@ -11,6 +11,13 @@
 <div id="app" class="app"></div>
 <input id="file" type="file" accept="video/*" hidden>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script>
+window.addEventListener('error', function (e) {
+  var a = document.getElementById('app');
+  if (a && !a.children.length) a.innerHTML = '<div style="padding:40px 24px;font:14px Inter,sans-serif;color:#FCA5A5">Erro ao abrir o FLUX CINE:<br>' + String(e.message).replace(/</g,'&lt;') + '</div>';
+});
+</script>
+<script src="capacitor.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

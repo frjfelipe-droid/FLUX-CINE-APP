@@ -30,6 +30,33 @@ public class ExportTest {
     private static final String TAG = "FLUXTEST";
 
     @Test
+    public void appOpensAndShowsTemplates() throws Exception {
+        Context target = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        try (androidx.test.core.app.ActivityScenario<MainActivity> sc = androidx.test.core.app.ActivityScenario.launch(MainActivity.class)) {
+            String res = null;
+            for (int i = 0; i < 20 && (res == null || !res.startsWith("\"6")); i++) {
+                Thread.sleep(1000);
+                final String[] r = {null};
+                final CountDownLatch l = new CountDownLatch(1);
+                sc.onActivity(a -> a.getBridge().getWebView().evaluateJavascript(
+                        "document.querySelectorAll('.card').length + '|' + (document.querySelector('.badge')||{}).innerText + '|' + document.getElementById('app').innerText.slice(0,80)",
+                        v -> { r[0] = v; l.countDown(); }));
+                l.await(5, TimeUnit.SECONDS);
+                res = r[0];
+            }
+            Log.i(TAG, "ui=" + res);
+            Thread.sleep(1500);
+            Bitmap shot = InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
+            if (shot != null) {
+                java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+                Bitmap.createScaledBitmap(shot, shot.getWidth() / 2, shot.getHeight() / 2, true).compress(Bitmap.CompressFormat.JPEG, 80, bos);
+                toDownloads(target, "ui_home.jpg", "image/jpeg", bos.toByteArray());
+            }
+            assertTrue("tela inicial não carregou: " + res, res != null && res.startsWith("\"6|Edita no seu celular"));
+        }
+    }
+
+    @Test
     public void transcribeCutAndExport() throws Exception {
         Context target = InstrumentationRegistry.getInstrumentation().getTargetContext();
         Context testCtx = InstrumentationRegistry.getInstrumentation().getContext();

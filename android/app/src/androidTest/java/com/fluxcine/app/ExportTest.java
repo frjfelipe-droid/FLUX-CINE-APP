@@ -2,6 +2,8 @@ package com.fluxcine.app;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.media.MediaExtractor;
+import android.media.MediaFormat;
 import android.media.MediaMetadataRetriever;
 import android.util.Log;
 
@@ -13,6 +15,7 @@ import org.json.JSONObject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -24,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertTrue;
 
-/** Teste de ponta a ponta no aparelho: escuta a fala, corta silêncios, exporta e salva quadros para conferência. */
+/** Testes de ponta a ponta no aparelho: abre o app, escuta a fala, monta os vídeos e salva quadros. */
 @RunWith(AndroidJUnit4.class)
 public class ExportTest {
     private static final String TAG = "FLUXTEST";
@@ -34,7 +37,7 @@ public class ExportTest {
         Context target = InstrumentationRegistry.getInstrumentation().getTargetContext();
         try (androidx.test.core.app.ActivityScenario<MainActivity> sc = androidx.test.core.app.ActivityScenario.launch(MainActivity.class)) {
             String res = null;
-            for (int i = 0; i < 20 && (res == null || !(res.contains("O que você mais gosta") || res.contains("Escolha o título"))); i++) {
+            for (int i = 0; i < 20 && (res == null || !(res.contains("O que você mais gosta") || res.contains("títulos"))); i++) {
                 Thread.sleep(1000);
                 final String[] r = {null};
                 final CountDownLatch l = new CountDownLatch(1);
@@ -47,12 +50,8 @@ public class ExportTest {
             Log.i(TAG, "ui=" + res);
             Thread.sleep(1500);
             Bitmap shot = InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
-            if (shot != null) {
-                java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
-                Bitmap.createScaledBitmap(shot, shot.getWidth() / 2, shot.getHeight() / 2, true).compress(Bitmap.CompressFormat.JPEG, 80, bos);
-                toDownloads(target, "ui_home.jpg", "image/jpeg", bos.toByteArray());
-            }
-            assertTrue("tela inicial não carregou: " + res, res != null && (res.contains("O que você mais gosta") || res.contains("Escolha o título")));
+            if (shot != null) toDownloads(target, "ui_home.jpg", "image/jpeg", jpg(Bitmap.createScaledBitmap(shot, shot.getWidth() / 2, shot.getHeight() / 2, true)));
+            assertTrue("tela inicial não carregou: " + res, res != null && (res.contains("O que você mais gosta") || res.contains("títulos")));
         }
     }
 
@@ -66,10 +65,7 @@ public class ExportTest {
             int n;
             while ((n = is.read(b)) > 0) os.write(b, 0, n);
         }
-        File frames = new File(target.getExternalFilesDir(null), "frames");
-        frames.mkdirs();
         JSONObject report = new JSONObject();
-
         long t0 = System.currentTimeMillis();
         JSONArray words = SpeechEngine.get(target).transcribe(in.getAbsolutePath(), null);
         report.put("transcribeMs", System.currentTimeMillis() - t0);
@@ -81,7 +77,7 @@ public class ExportTest {
         double dur = Long.parseLong(mr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)) / 1000.0;
         mr.release();
 
-        // mesmo plano que o app faz: trechos de fala (sem silêncios) + legendas de até 3 palavras
+        // trechos de fala (sem silêncios); 2º trecho = gancho no início; último = final de impacto
         List<double[]> segs = new ArrayList<>();
         for (int i = 0; i < words.length(); i++) {
             JSONObject w = words.getJSONObject(i);
@@ -89,85 +85,101 @@ public class ExportTest {
             if (!segs.isEmpty() && s - segs.get(segs.size() - 1)[1] < 0.45) segs.get(segs.size() - 1)[1] = Math.max(segs.get(segs.size() - 1)[1], e);
             else segs.add(new double[]{s, e});
         }
-        if (segs.isEmpty()) { segs.add(new double[]{0, dur / 2}); segs.add(new double[]{dur / 2, dur}); }
-
-        // gancho: o 2º trecho de fala vai para o início (como o app faz)
+        if (segs.size() < 2) { segs.clear(); segs.add(new double[]{0, dur / 2}); segs.add(new double[]{dur / 2, dur}); }
         List<double[]> order = new ArrayList<>();
-        double hookDur = 0;
-        if (segs.size() > 1) { order.add(segs.get(1)); order.add(segs.get(0)); for (int i = 2; i < segs.size(); i++) order.add(segs.get(i)); hookDur = segs.get(1)[1] - segs.get(1)[0]; }
-        else order.addAll(segs);
-        JSONArray segments = new JSONArray();
-        JSONArray captions = new JSONArray();
-        double out = 0;
-        JSONObject cur = null;
-        for (double[] g : order) {
-            segments.put(new JSONObject().put("path", in.getAbsolutePath()).put("startMs", Math.round(g[0] * 1000)).put("endMs", Math.round(g[1] * 1000)));
-            for (int i = 0; i < words.length(); i++) {
-                JSONObject w = words.getJSONObject(i);
-                if (w.getDouble("s") >= g[0] - 0.02 && w.getDouble("e") <= g[1] + 0.02) {
-                    double s = out + w.getDouble("s") - g[0], e = out + w.getDouble("e") - g[0];
-                    if (cur == null || cur.getJSONArray("words").length() >= 3) {
-                        cur = new JSONObject().put("s", s).put("e", e).put("words", new JSONArray());
-                        captions.put(cur);
-                    }
-                    cur.getJSONArray("words").put(new JSONObject().put("w", w.getString("w")).put("s", s).put("e", e));
-                    cur.put("e", e + 0.3);
-                }
-            }
-            out += g[1] - g[0];
-        }
-        double titleEnd = Math.max(2.6, Math.min(4.8, hookDur > 0 ? hookDur : 3.4));
-        report.put("segments", segments.length());
-        report.put("cutDuration", out);
-        report.put("originalDuration", dur);
-        report.put("hookDur", hookDur);
+        order.add(segs.get(1)); order.add(segs.get(0));
+        for (int i = 2; i < segs.size(); i++) order.add(segs.get(i));
+        double hookDur = segs.get(1)[1] - segs.get(1)[0];
 
-        String lj;
-        try (InputStream is = testCtx.getAssets().open("layouts.json")) {
-            java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
-            byte[] bb = new byte[8192]; int k;
-            while ((k = is.read(bb)) > 0) bo.write(bb, 0, k);
-            lj = bo.toString("UTF-8");
-        }
+        String lj = new String(readAll(testCtx.getAssets().open("layouts.json")), "UTF-8");
         JSONObject layouts = new JSONObject(lj);
-        JSONArray bnd = new JSONArray().put(hookDur > 0 ? hookDur : out / 2);
+        JSONObject capBox = new JSONObject().put("fontFile", "Montserrat-800.ttf").put("upper", false).put("size", 1).put("ls", 0)
+                .put("shadow", "outline").put("hl", "box").put("anim", "pop").put("y", 0.73).put("color", "#FFFFFF").put("accent", "#F2D13A");
 
-        JSONObject a = new JSONObject()
-                .put("segments", segments).put("captions", captions).put("boundaries", bnd)
-                .put("titleLayout", layouts.getJSONArray("classico")).put("titleEnd", titleEnd)
-                .put("fontFile", "Unbounded-800.ttf").put("upper", false)
-                .put("accent", "#F2D13A").put("hlMode", "box").put("letterbox", false)
-                .put("cta", "Chama no WhatsApp").put("ending", "cut").put("sfx", "impact").put("quality", "hd");
-        report.put("A", runExport(target, a, frames, "A", titleEnd));
+        // A — cinemático: gancho no início, título Clássico, legenda caixa, final de impacto, CTA
+        Plan pa = plan(in, words, new ArrayList<double[]>(), order, 0);
+        JSONObject a = baseSpec(pa).put("titleLayout", layouts.getJSONArray("classico")).put("titleEnd", Math.max(2.6, Math.min(4.8, hookDur)))
+                .put("captionStyle", capBox).put("cta", "Chama no WhatsApp").put("ending", "cut").put("sfx", "impact").put("quality", "hd");
+        report.put("A", runExport(target, a, "A", new double[]{0.3, 1.2, a.getDouble("titleEnd") + 0.6, pa.finalStart + 0.05, pa.finalStart + 0.5, pa.total - 1.0}));
 
-        JSONObject b = new JSONObject(a.toString())
-                .put("titleLayout", layouts.getJSONArray("retro")).put("fontFile", "Anton-400.ttf").put("upper", true)
-                .put("accent", "#FFD21F").put("cta", "").put("ending", "fade").put("sfx", "whoosh");
-        report.put("B", runExport(target, b, frames, "B", titleEnd));
+        // B — título Glitch, legenda Bangers com brilho e pulo, título movido para cima e menor
+        JSONObject capGlow = new JSONObject(capBox.toString()).put("fontFile", "Bangers-400.ttf").put("upper", true).put("shadow", "glow").put("hl", "color").put("anim", "bounce").put("size", 1.25).put("ls", 0.04).put("y", 0.62).put("accent", "#00E5FF");
+        JSONObject b = new JSONObject(a.toString()).put("titleLayout", layouts.getJSONArray("glitch")).put("captionStyle", capGlow)
+                .put("titleTf", new JSONObject().put("ox", 0).put("oy", -420).put("s", 0.8)).put("cta", "").put("ending", "fade").put("sfx", "whoosh");
+        report.put("B", runExport(target, b, "B", new double[]{0.25, 0.6, 1.5, b.getDouble("titleEnd") + 0.6, pa.finalStart + 0.3, pa.total - 0.5}));
 
-        // 4K curto (só confere que exporta)
+        // D — dinâmico: chips (rápido, lento, pausa) sem áudio + mensagem + final de impacto
+        List<double[]> chips = new ArrayList<>();
+        chips.add(new double[]{1.0, 3.4, 2.0});
+        chips.add(new double[]{5.0, 5.6, 0.5});
+        chips.add(new double[]{8.0, 8.07, 0.1});
+        chips.add(new double[]{11.0, 11.9, 1.0});
+        Plan pd = plan(in, words, chips, segs, 1);
+        JSONObject d = baseSpec(pd).put("titleLayout", layouts.getJSONArray("empilhado")).put("titleEnd", Math.max(2.6, Math.min(6, pd.montage)))
+                .put("captionStyle", new JSONObject(capBox.toString()).put("fontFile", "Anton-400.ttf").put("upper", true).put("shadow", "hard").put("anim", "type"))
+                .put("cta", "").put("ending", "fade").put("sfx", "impact").put("quality", "hd");
+        report.put("D", runExport(target, d, "D", new double[]{0.4, 1.3, 2.2, pd.montage - 0.3, pd.montage + 0.8, pd.finalStart + 0.3}));
+        report.put("D_expected", pd.total);
+
+        // K — 4K curto com o título Etiqueta
         JSONArray seg4 = new JSONArray().put(new JSONObject().put("path", in.getAbsolutePath()).put("startMs", 1500).put("endMs", 4000));
-        JSONObject c4 = new JSONObject(a.toString()).put("segments", seg4).put("captions", new JSONArray()).put("boundaries", new JSONArray())
-                .put("titleLayout", layouts.getJSONArray("insano")).put("titleEnd", 2.4).put("quality", "4k").put("cta", "");
-        report.put("K", runExport(target, c4, frames, "K", 2.4));
+        JSONObject k = new JSONObject().put("segments", seg4).put("captions", new JSONArray()).put("boundaries", new JSONArray())
+                .put("titleLayout", layouts.getJSONArray("caixa")).put("titleEnd", 2.4).put("quality", "4k").put("sfx", "pop").put("captionStyle", capBox);
+        report.put("K", runExport(target, k, "K", new double[]{0.3, 0.8, 1.6, 2.2, 2.3, 2.4}));
 
         toDownloads(target, "report.json", "application/json", report.toString(2).getBytes("UTF-8"));
         Log.i(TAG, "report=" + report);
-        assertTrue("export A falhou: " + report.getJSONObject("A").optString("error"), report.getJSONObject("A").optBoolean("ok"));
-        assertTrue("export B falhou: " + report.getJSONObject("B").optString("error"), report.getJSONObject("B").optBoolean("ok"));
-        assertTrue("export 4K falhou: " + report.getJSONObject("K").optString("error"), report.getJSONObject("K").optBoolean("ok"));
+        for (String key : new String[]{"A", "B", "D", "K"}) {
+            assertTrue("export " + key + " falhou: " + report.getJSONObject(key).optString("error"), report.getJSONObject(key).optBoolean("ok"));
+        }
     }
 
-    private static void toDownloads(Context ctx, String name, String mime, byte[] data) throws Exception {
-        android.content.ContentValues v = new android.content.ContentValues();
-        v.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, name);
-        v.put(android.provider.MediaStore.MediaColumns.MIME_TYPE, mime);
-        v.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, "Download/fluxtest");
-        android.net.Uri uri = ctx.getContentResolver().insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
-        try (OutputStream os = ctx.getContentResolver().openOutputStream(uri)) { os.write(data); }
+    /** Linha do tempo como o app monta: chips (com velocidade, sem áudio) e depois os trechos falados. */
+    static final class Plan {
+        JSONArray segments = new JSONArray(), captions = new JSONArray(), boundaries = new JSONArray();
+        double total, montage, finalStart = -1;
     }
 
-    private JSONObject runExport(Context ctx, JSONObject spec, File frames, String tag, double tEnd) throws Exception {
+    private static Plan plan(File in, JSONArray words, List<double[]> chips, List<double[]> talk, int skip) throws Exception {
+        Plan p = new Plan();
+        double out = 0;
+        for (int i = 0; i < chips.size(); i++) {
+            double[] c = chips.get(i);
+            if (i > 0) p.boundaries.put(out);
+            p.segments.put(new JSONObject().put("path", in.getAbsolutePath()).put("startMs", Math.round(c[0] * 1000)).put("endMs", Math.round(c[1] * 1000)).put("speed", c[2]).put("removeAudio", true));
+            out += (c[1] - c[0]) / c[2];
+        }
+        p.montage = out;
+        if (out > 0) p.boundaries.put(out);
+        else if (talk.size() > 1) p.boundaries.put(talk.get(0)[1] - talk.get(0)[0]);
+        JSONObject cur = null;
+        for (int g = 0; g < talk.size(); g++) {
+            double[] s = talk.get(g);
+            if (g == talk.size() - 1 && talk.size() > 1) p.finalStart = out;
+            p.segments.put(new JSONObject().put("path", in.getAbsolutePath()).put("startMs", Math.round(s[0] * 1000)).put("endMs", Math.round(s[1] * 1000)));
+            for (int i = 0; i < words.length(); i++) {
+                JSONObject w = words.getJSONObject(i);
+                if (w.getDouble("s") >= s[0] - 0.02 && w.getDouble("e") <= s[1] + 0.02) {
+                    double ws = out + w.getDouble("s") - s[0], we = out + w.getDouble("e") - s[0];
+                    if (cur == null || cur.getJSONArray("words").length() >= 3 || (p.finalStart >= 0 && ws >= p.finalStart && cur.getDouble("s") < p.finalStart)) {
+                        cur = new JSONObject().put("s", ws).put("e", we).put("words", new JSONArray());
+                        p.captions.put(cur);
+                    }
+                    cur.getJSONArray("words").put(new JSONObject().put("w", w.getString("w")).put("s", ws).put("e", we));
+                    cur.put("e", we + 0.3);
+                }
+            }
+            out += s[1] - s[0];
+        }
+        p.total = out;
+        return p;
+    }
+
+    private static JSONObject baseSpec(Plan p) throws Exception {
+        return new JSONObject().put("segments", p.segments).put("captions", p.captions).put("boundaries", p.boundaries).put("finalStart", p.finalStart);
+    }
+
+    private JSONObject runExport(Context ctx, JSONObject spec, String tag, double[] ts) throws Exception {
         JSONObject r = new JSONObject();
         File out = new File(ctx.getCacheDir(), "out_" + tag + ".mp4");
         out.delete();
@@ -197,18 +209,47 @@ public class ExportTest {
         r.put("bytes", out.length());
         r.put("duration", d);
         r.put("size", mr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH) + "x" + mr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT));
-        r.put("hasAudio", mr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO));
         r.put("rotation", mr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION));
-        double[] ts = {0.3, 0.75, 1.5, tEnd - 0.2, tEnd + 0.6, d - 1.2};
+        MediaExtractor ex = new MediaExtractor();
+        ex.setDataSource(out.getAbsolutePath());
+        for (int i = 0; i < ex.getTrackCount(); i++) {
+            MediaFormat f = ex.getTrackFormat(i);
+            String mime = f.getString(MediaFormat.KEY_MIME);
+            if (f.containsKey(MediaFormat.KEY_DURATION)) r.put(mime.startsWith("audio") ? "audioDur" : "videoDur", f.getLong(MediaFormat.KEY_DURATION) / 1e6);
+        }
+        ex.release();
         for (int i = 0; i < ts.length; i++) {
-            Bitmap f = mr.getFrameAtTime((long) (Math.max(0, ts[i]) * 1e6), MediaMetadataRetriever.OPTION_CLOSEST);
+            Bitmap f = mr.getFrameAtTime((long) (Math.max(0, Math.min(d - 0.05, ts[i])) * 1e6), MediaMetadataRetriever.OPTION_CLOSEST);
             if (f == null) continue;
             Bitmap s = f.getWidth() > f.getHeight() ? Bitmap.createScaledBitmap(f, 640, 360, true) : Bitmap.createScaledBitmap(f, 360, 640, true);
-            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
-            s.compress(Bitmap.CompressFormat.JPEG, 80, bos);
-            toDownloads(ctx, tag + "_" + i + ".jpg", "image/jpeg", bos.toByteArray());
+            toDownloads(ctx, tag + "_" + i + ".jpg", "image/jpeg", jpg(s));
         }
         mr.release();
         return r;
+    }
+
+    private static byte[] jpg(Bitmap b) {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        b.compress(Bitmap.CompressFormat.JPEG, 80, bos);
+        return bos.toByteArray();
+    }
+
+    private static byte[] readAll(InputStream is) throws Exception {
+        try (InputStream in = is) {
+            ByteArrayOutputStream bo = new ByteArrayOutputStream();
+            byte[] bb = new byte[8192];
+            int k;
+            while ((k = in.read(bb)) > 0) bo.write(bb, 0, k);
+            return bo.toByteArray();
+        }
+    }
+
+    private static void toDownloads(Context ctx, String name, String mime, byte[] data) throws Exception {
+        android.content.ContentValues v = new android.content.ContentValues();
+        v.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, name);
+        v.put(android.provider.MediaStore.MediaColumns.MIME_TYPE, mime);
+        v.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, "Download/fluxtest");
+        android.net.Uri uri = ctx.getContentResolver().insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
+        try (OutputStream os = ctx.getContentResolver().openOutputStream(uri)) { os.write(data); }
     }
 }

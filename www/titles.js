@@ -1,138 +1,236 @@
-/* FLUX CINE — modelos de título cinematográfico.
- * layout(id, textos) devolve uma lista de camadas em coordenadas 1080x1920.
- * draw(ctx, camadas, t, fim) desenha o quadro no tempo t (segundos).
- * O app Android (CineRenderer.java) desenha as MESMAS camadas no vídeo final. */
+/* FLUX CINE — modelos de título cinematográfico e desenho da legenda.
+ * layout(id, textos) → camadas em coordenadas 1080x1920.
+ * draw(ctx, camadas, t, fim, tf) desenha o título no tempo t; tf = {ox, oy, s} move/escala o título.
+ * drawCaption(ctx, trecho, t, estilo, enfase) desenha a legenda.
+ * O Android (TitleLayer.java / CineRenderer.java) desenha exatamente as mesmas camadas e estilos. */
 (function (root) {
   var W = 1080, H = 1920;
   var YEAR = String(new Date().getFullYear());
+  var VIDS = [39878, 1240, 39765, 1232, 39875, 1238];
 
-  var MODELS = [
-    { id: 'classico', name: 'Clássico Dourado', vibe: 'serifa de cinema', accent: '#F2D13A', media: 39878, demo: { title: 'Cinematic', sub: 'Simples, mas marcante', brand: 'Sua Marca' } },
-    { id: 'camp', name: 'Neon Camp', vibe: 'bloco + assinatura', accent: '#D4FF3A', media: 1240, demo: { title: 'Midyear', sub: 'Camp', brand: 'Sua Marca' } },
-    { id: 'escape', name: 'Escape', vibe: 'viagem e lifestyle', accent: '#FFD21F', media: 39765, demo: { title: 'One Day', sub: 'escape', brand: 'Sua Marca' } },
-    { id: 'insano', name: 'Insano', vibe: 'videoclipe alto', accent: '#FFB000', media: 1232, vip: true, demo: { title: 'Insane', sub: 'Novo lançamento', brand: 'Sua Marca' } },
-    { id: 'paladar', name: 'Paladar', vibe: 'editorial de lente', accent: '#F5D90A', media: 39875, demo: { title: 'Taste', sub: 'Uma experiência', brand: 'Sua Marca' } },
-    { id: 'retro', name: 'Retrô 70', vibe: 'documentário anos 70', accent: '#FFD21F', media: 1238, vip: true, demo: { title: 'Merman', sub: 'Um curta original', brand: 'Sua Marca' } }
+  /* 15 famílias × 2 cores = 30 modelos */
+  var DEFS = [
+    ['classico', 'Clássico Dourado', 'serifa de cinema', { c: '#F2D13A' }, 'Clássico Prata', { c: '#E7E7EA' }],
+    ['camp', 'Neon Camp', 'bloco + assinatura', { c: '#FFFFFF', a: '#D4FF3A' }, 'Camp Rosa', { c: '#FFFFFF', a: '#FF5FA2' }],
+    ['escape', 'Escape', 'viagem e lifestyle', { c: '#FFD21F', a: '#FFFFFF' }, 'Escape Oceano', { c: '#4FD1FF', a: '#FFFFFF' }],
+    ['insano', 'Insano', 'videoclipe alto', { c: '#FFB000' }, 'Insano Vermelho', { c: '#FF3B30' }],
+    ['paladar', 'Paladar', 'editorial de lente', { c: '#F5D90A' }, 'Paladar Menta', { c: '#7CF5C4' }],
+    ['retro', 'Retrô 70', 'documentário anos 70', { c: '#FFD21F', a: '#E5341D' }, 'Retrô Disco', { c: '#FF8AD8', a: '#5B2BFF' }],
+    ['neon', 'Neon Noite', 'contorno que pisca', { c: '#FF4FD8', a: '#FFFFFF' }, 'Neon Ciano', { c: '#3DF2FF', a: '#FFFFFF' }],
+    ['minimal', 'Minimal', 'limpo e elegante', { c: '#FFFFFF', a: '#FF7A1A' }, 'Minimal Creme', { c: '#F3E9D2', a: '#C9A86A' }],
+    ['caixa', 'Etiqueta', 'texto em faixa', { c: '#FFFFFF', a: '#111111' }, 'Etiqueta Lima', { c: '#D4FF3A', a: '#0A0A0A' }],
+    ['glitch', 'Glitch', 'digital e tremido', { c: '#FFFFFF', a: '#00E5FF', b: '#FF2D55' }, 'Glitch Magenta', { c: '#FFFFFF', a: '#FF2DD1', b: '#2DFF8A' }],
+    ['maquina', 'Máquina', 'digitando na tela', { c: '#FFFFFF', a: '#FF7A1A' }, 'Máquina Âmbar', { c: '#FFC24A', a: '#FFFFFF' }],
+    ['empilhado', 'Empilhado', 'palavras em blocos', { c: '#FFFFFF', a: '#FF7A1A' }, 'Empilhado Fogo', { c: '#FFD21F', a: '#FF3B30' }],
+    ['revista', 'Revista', 'capa editorial', { c: '#FFFFFF', a: '#FF7A1A' }, 'Revista Noir', { c: '#FFFFFF', a: '#9A9A9A' }],
+    ['assinatura', 'Assinatura', 'caligrafia de autor', { c: '#FFFFFF', a: '#FFD21F' }, 'Assinatura Rosé', { c: '#FFC6D9', a: '#FFFFFF' }],
+    ['impacto', 'Impacto', 'gigante e direto', { c: '#FFFFFF', a: '#FF3B30' }, 'Impacto Azul', { c: '#FFFFFF', a: '#2D7BFF' }]
   ];
+  var DEMO = {
+    classico: ['Cinematic', 'Simples, mas marcante'], camp: ['Midyear', 'Camp'], escape: ['One Day', 'escape'], insano: ['Insane', 'Novo lançamento'],
+    paladar: ['Taste', 'Uma experiência'], retro: ['Merman', 'Um curta original'], neon: ['Noite', 'aberto até tarde'], minimal: ['Essencial', 'menos é mais'],
+    caixa: ['Promoção', 'só esta semana'], glitch: ['Reset', 'nova fase'], maquina: ['Você sabia?', 'o segredo é simples'], empilhado: ['Pare de errar', 'veja isso'],
+    revista: ['Estilo', 'a edição de hoje'], assinatura: ['Com amor', 'feito à mão'], impacto: ['Atenção', 'leia isso']
+  };
+  var MODELS = [];
+  DEFS.forEach(function (d, i) {
+    var dm = DEMO[d[0]];
+    MODELS.push({ id: d[0] + '-1', fam: d[0], name: d[1], vibe: d[2], P: d[3], accent: d[3].a && d[0] !== 'caixa' ? d[3].a : d[3].c, media: VIDS[i % 6], demo: { title: dm[0], sub: dm[1], brand: 'Sua Marca' } });
+    MODELS.push({ id: d[0] + '-2', fam: d[0], name: d[4], vibe: d[2], P: d[5], accent: d[5].a && d[0] !== 'caixa' ? d[5].a : d[5].c, media: VIDS[(i + 3) % 6], vip: i >= 3, demo: { title: dm[0], sub: dm[1], brand: 'Sua Marca' } });
+  });
 
   var mctx = document.createElement('canvas').getContext('2d');
   function width(text, fam, size) { mctx.font = size + 'px "' + fam + '"'; return mctx.measureText(text).width; }
   function fit(text, fam, maxW, maxSize, sx, ls) {
     sx = sx || 1; ls = ls || 0;
     var s = maxSize;
-    while (s > 20) {
-      var w = (width(text, fam, s) + ls * s * text.length) * sx;
-      if (w <= maxW) break;
-      s -= 4;
-    }
+    while (s > 20) { if ((width(text, fam, s) + ls * s * text.length) * sx <= maxW) break; s -= 4; }
     return s;
   }
   function T(o) { o.type = 'text'; if (!o.color) o.color = '#FFFFFF'; if (o.ls == null) o.ls = 0; if (!o.sx) o.sx = 1; if (!o.align) o.align = 'center'; return o; }
   function up(s) { return String(s || '').toUpperCase(); }
   function cap(s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
+  function A(k, d, u) { return { k: k, d: d, u: u }; }
 
   function layout(id, tx) {
+    var m = null;
+    for (var i = 0; i < MODELS.length; i++) if (MODELS[i].id === id || MODELS[i].fam === id) { m = MODELS[i]; break; }
+    if (!m) m = MODELS[0];
+    var P = m.P, C = P.c, AC = P.a || P.c;
     var title = (tx.title || '').trim() || 'Seu título', sub = (tx.sub || '').trim(), brand = (tx.brand || '').trim() || 'FLUX CINE';
-    var L = [], m, y, s;
-    switch (id) {
+    var L = [], s, y;
+    switch (m.fam) {
       case 'classico': {
-        var Y = '#F2D13A';
-        L.push({ type: 'dim', alpha: 0.42, anim: { k: 'fade', d: 0, u: 0.5 } });
-        L.push({ type: 'line', x1: 60, y1: 170, x2: 1020, y2: 170, w: 2, color: 'rgba(242,209,58,.7)', anim: { k: 'draw', d: 0.15, u: 0.9 } });
-        L.push({ type: 'line', x1: 60, y1: 1750, x2: 1020, y2: 1750, w: 2, color: 'rgba(242,209,58,.7)', anim: { k: 'draw', d: 0.15, u: 0.9 } });
-        L.push(T({ text: up(brand), font: 'DMSerifDisplay-400', size: 30, x: 70, y: 135, align: 'left', color: Y, ls: 0.06, anim: { k: 'fade', d: 0.5, u: 0.6 } }));
-        L.push(T({ text: YEAR, font: 'DMSerifDisplay-400', size: 30, x: 1010, y: 135, align: 'right', color: Y, ls: 0.06, anim: { k: 'fade', d: 0.5, u: 0.6 } }));
-        L.push({ type: 'oval', cx: 540, cy: 124, rx: 120, ry: 34, w: 2, color: Y, anim: { k: 'fade', d: 0.55, u: 0.6 } });
-        L.push(T({ text: 'APRESENTA', font: 'DMSerifDisplay-400', size: 26, x: 540, y: 134, color: Y, ls: 0.08, anim: { k: 'fade', d: 0.55, u: 0.6 } }));
+        var lc = C === '#F2D13A' ? 'rgba(242,209,58,.7)' : 'rgba(231,231,234,.7)';
+        L.push({ type: 'dim', alpha: 0.42, anim: A('fade', 0, 0.5) });
+        L.push({ type: 'line', x1: 60, y1: 170, x2: 1020, y2: 170, w: 2, color: lc, anim: A('draw', 0.15, 0.9) });
+        L.push({ type: 'line', x1: 60, y1: 1750, x2: 1020, y2: 1750, w: 2, color: lc, anim: A('draw', 0.15, 0.9) });
+        L.push(T({ text: up(brand), font: 'DMSerifDisplay-400', size: 30, x: 70, y: 135, align: 'left', color: C, ls: 0.06, anim: A('fade', 0.5, 0.6) }));
+        L.push(T({ text: YEAR, font: 'DMSerifDisplay-400', size: 30, x: 1010, y: 135, align: 'right', color: C, ls: 0.06, anim: A('fade', 0.5, 0.6) }));
+        L.push({ type: 'oval', cx: 540, cy: 124, rx: 120, ry: 34, w: 2, color: C, anim: A('fade', 0.55, 0.6) });
+        L.push(T({ text: 'APRESENTA', font: 'DMSerifDisplay-400', size: 26, x: 540, y: 134, color: C, ls: 0.08, anim: A('fade', 0.55, 0.6) }));
         s = fit(up(title), 'DMSerifDisplay-400', 980, 250, 1, 0.01); y = 1010;
-        L.push(T({ text: up(brand) + ' APRESENTA', font: 'DMSerifDisplay-400', size: 52, x: 540, y: y - s * 0.78 - 18, color: Y, ls: 0.04, anim: { k: 'rise', d: 0.35, u: 0.7 } }));
-        L.push(T({ text: up(title), font: 'DMSerifDisplay-400', size: s, x: 540, y: y, color: Y, ls: 0.01, anim: { k: 'blur', d: 0.1, u: 0.95 } }));
-        if (sub) L.push(T({ text: up(sub), font: 'DMSerifDisplay-400', size: fit(up(sub), 'DMSerifDisplay-400', 940, 40, 1, 0.22), x: 540, y: y + 88, color: Y, ls: 0.22, anim: { k: 'track', d: 0.6, u: 0.9 } }));
-        L.push(T({ text: 'UM VÍDEO DE ' + up(brand), font: 'DMSerifDisplay-400', size: 24, x: 540, y: 1660, color: Y, ls: 0.06, anim: { k: 'fade', d: 0.9, u: 0.6 } }));
-        L.push(T({ text: 'FEITO COM FLUX CINE', font: 'DMSerifDisplay-400', size: 24, x: 540, y: 1696, color: Y, ls: 0.06, anim: { k: 'fade', d: 0.95, u: 0.6 } }));
+        L.push(T({ text: up(brand) + ' APRESENTA', font: 'DMSerifDisplay-400', size: 52, x: 540, y: y - s * 0.78 - 18, color: C, ls: 0.04, anim: A('rise', 0.35, 0.7) }));
+        L.push(T({ text: up(title), font: 'DMSerifDisplay-400', size: s, x: 540, y: y, color: C, ls: 0.01, anim: A('blur', 0.1, 0.95) }));
+        if (sub) L.push(T({ text: up(sub), font: 'DMSerifDisplay-400', size: fit(up(sub), 'DMSerifDisplay-400', 940, 40, 1, 0.22), x: 540, y: y + 88, color: C, ls: 0.22, anim: A('track', 0.6, 0.9) }));
+        L.push(T({ text: 'UM VÍDEO DE ' + up(brand), font: 'DMSerifDisplay-400', size: 24, x: 540, y: 1680, color: C, ls: 0.06, anim: A('fade', 0.9, 0.6) }));
         break;
       }
-      case 'camp': {
-        var G = '#D4FF3A';
-        L.push({ type: 'dim', alpha: 0.28, anim: { k: 'fade', d: 0, u: 0.5 } });
-        L.push(T({ text: up(brand), font: 'ArchivoBlack-400', size: 38, x: 80, y: 260, align: 'left', anim: { k: 'fade', d: 0.5, u: 0.5 } }));
-        L.push(T({ text: 'APRESENTA', font: 'ArchivoBlack-400', size: 38, x: 540, y: 260, color: G, anim: { k: 'fade', d: 0.55, u: 0.5 } }));
-        L.push(T({ text: 'VÍDEO', font: 'ArchivoBlack-400', size: 38, x: 1000, y: 260, align: 'right', anim: { k: 'fade', d: 0.6, u: 0.5 } }));
+      case 'camp':
+        L.push({ type: 'dim', alpha: 0.28, anim: A('fade', 0, 0.5) });
+        L.push(T({ text: up(brand), font: 'ArchivoBlack-400', size: 38, x: 80, y: 260, align: 'left', color: C, anim: A('fade', 0.5, 0.5) }));
+        L.push(T({ text: 'APRESENTA', font: 'ArchivoBlack-400', size: 38, x: 540, y: 260, color: AC, anim: A('fade', 0.55, 0.5) }));
+        L.push(T({ text: 'VÍDEO', font: 'ArchivoBlack-400', size: 38, x: 1000, y: 260, align: 'right', color: C, anim: A('fade', 0.6, 0.5) }));
         s = fit(up(title), 'ArchivoBlack-400', 1010, 300, 1, -0.03); y = 980;
-        L.push(T({ text: up(title), font: 'ArchivoBlack-400', size: s, x: 540, y: y, ls: -0.03, anim: { k: 'blur', d: 0.1, u: 0.85 } }));
-        if (sub) L.push(T({ text: cap(sub), font: 'GreatVibes-400', size: fit(cap(sub), 'GreatVibes-400', 860, Math.round(s * 1.05)), x: 600, y: y + s * 0.5, color: G, rot: -7, anim: { k: 'reveal', d: 0.65, u: 0.9 } }));
-        L.push(T({ text: YEAR, font: 'ArchivoBlack-400', size: 40, x: 540, y: 1700, anim: { k: 'fade', d: 0.9, u: 0.5 } }));
+        L.push(T({ text: up(title), font: 'ArchivoBlack-400', size: s, x: 540, y: y, color: C, ls: -0.03, anim: A('blur', 0.1, 0.85) }));
+        if (sub) L.push(T({ text: cap(sub), font: 'GreatVibes-400', size: fit(cap(sub), 'GreatVibes-400', 860, Math.round(s * 1.05)), x: 600, y: y + s * 0.5, color: AC, rot: -7, anim: A('reveal', 0.65, 0.9) }));
+        L.push(T({ text: YEAR, font: 'ArchivoBlack-400', size: 40, x: 540, y: 1700, color: C, anim: A('fade', 0.9, 0.5) }));
         break;
-      }
-      case 'escape': {
-        var Ye = '#FFD21F';
-        L.push({ type: 'dim', alpha: 0.18, anim: { k: 'fade', d: 0, u: 0.5 } });
+      case 'escape':
+        L.push({ type: 'dim', alpha: 0.18, anim: A('fade', 0, 0.5) });
         s = fit(up(title), 'Anton-400', 1010, 340, 1, -0.01); y = 1000;
-        L.push(T({ text: 'POR', font: 'Inter-700', size: 32, x: 90, y: y - s * 0.86 - 22, align: 'left', color: Ye, anim: { k: 'fade', d: 0.45, u: 0.5 } }));
-        L.push(T({ text: up(brand), font: 'Inter-700', size: 32, x: 990, y: y - s * 0.86 - 22, align: 'right', color: Ye, anim: { k: 'fade', d: 0.5, u: 0.5 } }));
-        L.push(T({ text: up(title), font: 'Anton-400', size: s, x: 540, y: y, color: Ye, ls: -0.01, anim: { k: 'rise', d: 0.1, u: 0.8 } }));
-        if (sub) L.push(T({ text: sub.toLowerCase(), font: 'Yellowtail-400', size: fit(sub.toLowerCase(), 'Yellowtail-400', 900, Math.round(s * 0.82)), x: 560, y: y + s * 0.42, rot: -5, anim: { k: 'reveal', d: 0.6, u: 0.85 } }));
-        L.push(T({ text: 'UM VÍDEO DE ' + up(brand), font: 'Inter-700', size: 28, x: 540, y: y + s * 0.78, ls: 0.08, anim: { k: 'fade', d: 0.95, u: 0.5 } }));
+        L.push(T({ text: 'POR', font: 'Inter-700', size: 32, x: 90, y: y - s * 0.86 - 22, align: 'left', color: C, anim: A('fade', 0.45, 0.5) }));
+        L.push(T({ text: up(brand), font: 'Inter-700', size: 32, x: 990, y: y - s * 0.86 - 22, align: 'right', color: C, anim: A('fade', 0.5, 0.5) }));
+        L.push(T({ text: up(title), font: 'Anton-400', size: s, x: 540, y: y, color: C, ls: -0.01, anim: A('rise', 0.1, 0.8) }));
+        if (sub) L.push(T({ text: sub.toLowerCase(), font: 'Yellowtail-400', size: fit(sub.toLowerCase(), 'Yellowtail-400', 900, Math.round(s * 0.82)), x: 560, y: y + s * 0.42, color: AC, rot: -5, anim: A('reveal', 0.6, 0.85) }));
+        L.push(T({ text: 'UM VÍDEO DE ' + up(brand), font: 'Inter-700', size: 28, x: 540, y: y + s * 0.78, ls: 0.08, anim: A('fade', 0.95, 0.5) }));
         break;
-      }
       case 'insano': {
-        var O = '#FFB000';
-        L.push({ type: 'dim', alpha: 0.22, anim: { k: 'fade', d: 0, u: 0.5 } });
-        L.push(T({ text: up(brand), font: 'Inter-700', size: 40, x: 540, y: 470, ls: 0.6, anim: { k: 'track', d: 0.4, u: 0.9 } }));
+        L.push({ type: 'dim', alpha: 0.22, anim: A('fade', 0, 0.5) });
+        L.push(T({ text: up(brand), font: 'Inter-700', size: 40, x: 540, y: 470, ls: 0.6, anim: A('track', 0.4, 0.9) }));
         s = fit(up(title), 'BodoniModa-900', 1020, 640, 0.46, 0); y = 1230;
-        L.push(T({ text: up(title), font: 'BodoniModa-900', size: s, x: 540, y: y, color: O, sx: 0.46, anim: { k: 'stretch', d: 0.1, u: 0.9 } }));
-        L.push(T({ text: up(brand) + ' APRESENTA ' + up(title) + (sub ? ' · ' + up(sub) : ''), font: 'Inter-700', size: fit(up(brand) + ' APRESENTA ' + up(title) + (sub ? ' · ' + up(sub) : ''), 'Inter-700', 900, 24), x: 540, y: y + 70, anim: { k: 'fade', d: 0.8, u: 0.6 } }));
-        L.push(T({ text: 'UM VÍDEO FLUX CINE · © ' + YEAR, font: 'Inter-400', size: 22, x: 540, y: y + 106, anim: { k: 'fade', d: 0.9, u: 0.6 } }));
+        L.push(T({ text: up(title), font: 'BodoniModa-900', size: s, x: 540, y: y, color: C, sx: 0.46, anim: A('stretch', 0.1, 0.9) }));
+        var cr = up(brand) + ' APRESENTA ' + up(title) + (sub ? ' · ' + up(sub) : '');
+        L.push(T({ text: cr, font: 'Inter-700', size: fit(cr, 'Inter-700', 900, 24), x: 540, y: y + 70, anim: A('fade', 0.8, 0.6) }));
+        L.push(T({ text: 'UM VÍDEO FLUX CINE · © ' + YEAR, font: 'Inter-400', size: 22, x: 540, y: y + 106, anim: A('fade', 0.9, 0.6) }));
         break;
       }
-      case 'paladar': {
-        var P = '#F5D90A';
-        L.push({ type: 'vignette', alpha: 0.95, anim: { k: 'fade', d: 0, u: 0.6 } });
+      case 'paladar':
+        L.push({ type: 'vignette', alpha: 0.95, anim: A('fade', 0, 0.6) });
         s = fit(up(title), 'PlayfairDisplay-900', 600, 380, 0.6, 0.02); y = 1080;
-        if (sub) L.push(T({ text: up(sub), font: 'Inter-700', size: 30, x: 540, y: y - s * 0.76 - 26, color: P, ls: 0.12, anim: { k: 'fade', d: 0.45, u: 0.6 } }));
-        L.push(T({ text: up(title), font: 'PlayfairDisplay-900', size: s, x: 540, y: y, color: P, sx: 0.6, ls: 0.02, anim: { k: 'track', d: 0.1, u: 1.0 } }));
-        L.push(T({ text: 'DIREÇÃO', font: 'Inter-700', size: 28, x: 80, y: y - s * 0.32, align: 'left', color: P, anim: { k: 'fade', d: 0.7, u: 0.5 } }));
-        L.push(T({ text: up(brand), font: 'Inter-400', size: 26, x: 80, y: y - s * 0.32 + 36, align: 'left', color: P, ls: 0.1, anim: { k: 'fade', d: 0.75, u: 0.5 } }));
-        L.push(T({ text: 'CÂMERA', font: 'Inter-700', size: 28, x: 1000, y: y - s * 0.32, align: 'right', color: P, anim: { k: 'fade', d: 0.7, u: 0.5 } }));
-        L.push(T({ text: 'FLUX CINE', font: 'Inter-400', size: 26, x: 1000, y: y - s * 0.32 + 36, align: 'right', color: P, ls: 0.1, anim: { k: 'fade', d: 0.75, u: 0.5 } }));
-        L.push(T({ text: up(brand) + ' APRESENTA', font: 'Inter-700', size: 28, x: 540, y: y + 96, color: P, ls: 0.06, anim: { k: 'fade', d: 0.9, u: 0.5 } }));
+        if (sub) L.push(T({ text: up(sub), font: 'Inter-700', size: 30, x: 540, y: y - s * 0.76 - 26, color: C, ls: 0.12, anim: A('fade', 0.45, 0.6) }));
+        L.push(T({ text: up(title), font: 'PlayfairDisplay-900', size: s, x: 540, y: y, color: C, sx: 0.6, ls: 0.02, anim: A('track', 0.1, 1.0) }));
+        L.push(T({ text: 'DIREÇÃO', font: 'Inter-700', size: 28, x: 80, y: y - s * 0.32, align: 'left', color: C, anim: A('fade', 0.7, 0.5) }));
+        L.push(T({ text: up(brand), font: 'Inter-400', size: 26, x: 80, y: y - s * 0.32 + 36, align: 'left', color: C, ls: 0.1, anim: A('fade', 0.75, 0.5) }));
+        L.push(T({ text: 'CÂMERA', font: 'Inter-700', size: 28, x: 1000, y: y - s * 0.32, align: 'right', color: C, anim: A('fade', 0.7, 0.5) }));
+        L.push(T({ text: 'FLUX CINE', font: 'Inter-400', size: 26, x: 1000, y: y - s * 0.32 + 36, align: 'right', color: C, ls: 0.1, anim: A('fade', 0.75, 0.5) }));
+        L.push(T({ text: up(brand) + ' APRESENTA', font: 'Inter-700', size: 28, x: 540, y: y + 96, color: C, ls: 0.06, anim: A('fade', 0.9, 0.5) }));
         break;
-      }
-      case 'retro': {
-        var R = '#FFD21F', RED = '#E5341D', sh = { dx: 7, dy: 7, color: RED, sw: 0 };
-        L.push({ type: 'dim', alpha: 0.12, anim: { k: 'fade', d: 0, u: 0.5 } });
+      case 'retro':
+        L.push({ type: 'dim', alpha: 0.12, anim: A('fade', 0, 0.5) });
         s = fit(cap(title), 'Shrikhand-400', 980, 270, 1, 0); y = 1000;
-        L.push(T({ text: up(brand), font: 'ArchivoBlack-400', size: 46, x: 540, y: y - s * 1.02 - 56, color: R, shadow: { dx: 3, dy: 3, color: RED, sw: 0 }, anim: { k: 'fade', d: 0.45, u: 0.5 } }));
-        L.push(T({ text: 'APRESENTA UM VÍDEO ORIGINAL', font: 'Anton-400', size: 30, x: 540, y: y - s * 1.02 - 10, color: R, ls: 0.04, anim: { k: 'fade', d: 0.55, u: 0.5 } }));
-        L.push(T({ text: cap(title), font: 'Shrikhand-400', size: s, x: 540, y: y, color: R, shadow: { dx: 8, dy: 8, color: RED, sw: Math.round(s * 0.05) }, anim: { k: 'pop', d: 0.1, u: 0.8 } }));
-        if (sub) L.push(T({ text: up(sub), font: 'Anton-400', size: fit(up(sub), 'Anton-400', 900, 40, 1, 0.03), x: 540, y: y + 90, color: R, ls: 0.03, anim: { k: 'fade', d: 0.8, u: 0.5 } }));
-        L.push(T({ text: 'DIREÇÃO ' + up(brand), font: 'Anton-400', size: 32, x: 540, y: y + 150, color: R, ls: 0.03, anim: { k: 'fade', d: 0.9, u: 0.5 } }));
-        L.push(T({ text: 'FEITO COM FLUX CINE', font: 'Anton-400', size: 24, x: 540, y: y + 190, color: R, ls: 0.06, anim: { k: 'fade', d: 1.0, u: 0.5 } }));
+        L.push(T({ text: up(brand), font: 'ArchivoBlack-400', size: 46, x: 540, y: y - s * 1.02 - 56, color: C, shadow: { dx: 3, dy: 3, color: AC, sw: 0 }, anim: A('fade', 0.45, 0.5) }));
+        L.push(T({ text: 'APRESENTA UM VÍDEO ORIGINAL', font: 'Anton-400', size: 30, x: 540, y: y - s * 1.02 - 10, color: C, ls: 0.04, anim: A('fade', 0.55, 0.5) }));
+        L.push(T({ text: cap(title), font: 'Shrikhand-400', size: s, x: 540, y: y, color: C, shadow: { dx: 8, dy: 8, color: AC, sw: Math.round(s * 0.05) }, anim: A('pop', 0.1, 0.8) }));
+        if (sub) L.push(T({ text: up(sub), font: 'Anton-400', size: fit(up(sub), 'Anton-400', 900, 40, 1, 0.03), x: 540, y: y + 90, color: C, ls: 0.03, anim: A('fade', 0.8, 0.5) }));
+        L.push(T({ text: 'DIREÇÃO ' + up(brand), font: 'Anton-400', size: 32, x: 540, y: y + 150, color: C, ls: 0.03, anim: A('fade', 0.9, 0.5) }));
+        break;
+      case 'neon':
+        L.push({ type: 'dim', alpha: 0.5, anim: A('fade', 0, 0.4) });
+        s = fit(up(title), 'Unbounded-800', 960, 190, 1, 0.02); y = 1000;
+        L.push(T({ text: up(title), font: 'Unbounded-800', size: s, x: 540, y: y, color: C, ls: 0.02, outline: Math.max(4, s * 0.035), glow: C, anim: A('flicker', 0.1, 1.0) }));
+        if (sub) L.push(T({ text: up(sub), font: 'Inter-700', size: fit(up(sub), 'Inter-700', 900, 34, 1, 0.3), x: 540, y: y + 80, color: AC, ls: 0.3, anim: A('fade', 0.8, 0.6) }));
+        L.push(T({ text: up(brand), font: 'Inter-700', size: 28, x: 540, y: y - s - 40, color: C, ls: 0.5, glow: C, anim: A('flicker', 0.5, 0.8) }));
+        break;
+      case 'minimal':
+        L.push({ type: 'dim', alpha: 0.32, anim: A('fade', 0, 0.5) });
+        s = fit(title, 'Inter-700', 860, 130, 1, -0.02); y = 1000;
+        L.push(T({ text: up(brand), font: 'Inter-700', size: 24, x: 540, y: y - s - 30, color: AC, ls: 0.45, anim: A('track', 0.3, 0.8) }));
+        L.push(T({ text: title, font: 'Inter-700', size: s, x: 540, y: y, color: C, ls: -0.02, anim: A('rise', 0.1, 0.8) }));
+        L.push({ type: 'line', x1: 440, y1: y + 46, x2: 640, y2: y + 46, w: 3, color: AC, anim: A('draw', 0.5, 0.7) });
+        if (sub) L.push(T({ text: sub, font: 'Inter-400', size: fit(sub, 'Inter-400', 860, 40), x: 540, y: y + 110, color: C, anim: A('fade', 0.7, 0.6) }));
+        break;
+      case 'caixa': {
+        s = fit(up(title), 'ArchivoBlack-400', 900, 150, 1, -0.01); y = 1000;
+        var tw = width(up(title), 'ArchivoBlack-400', s) * (1 - 0.01);
+        L.push({ type: 'box', x: 540 - tw / 2 - 40, y: y - s * 0.9, w: tw + 80, h: s * 1.18, color: C, r: 10, anim: A('wipe', 0.05, 0.5) });
+        L.push(T({ text: up(title), font: 'ArchivoBlack-400', size: s, x: 540, y: y, color: AC, ls: -0.01, anim: A('fade', 0.35, 0.35) }));
+        if (sub) {
+          var ss = fit(up(sub), 'Inter-700', 760, 44, 1, 0.06), sw2 = width(up(sub), 'Inter-700', ss) + ss * 0.06 * sub.length;
+          L.push({ type: 'box', x: 540 - sw2 / 2 - 26, y: y + s * 0.38, w: sw2 + 52, h: ss * 1.5, color: AC, r: 8, anim: A('wipe', 0.45, 0.45) });
+          L.push(T({ text: up(sub), font: 'Inter-700', size: ss, x: 540, y: y + s * 0.38 + ss * 1.08, color: C, ls: 0.06, anim: A('fade', 0.7, 0.35) }));
+        }
+        L.push(T({ text: up(brand), font: 'Inter-700', size: 26, x: 540, y: y - s * 0.9 - 30, color: '#FFFFFF', ls: 0.3, anim: A('fade', 0.6, 0.5) }));
         break;
       }
+      case 'glitch':
+        L.push({ type: 'dim', alpha: 0.35, anim: A('fade', 0, 0.3) });
+        s = fit(up(title), 'ArchivoBlack-400', 980, 230, 1, -0.02); y = 1000;
+        L.push(T({ text: up(title), font: 'ArchivoBlack-400', size: s, x: 540, y: y, color: C, ls: -0.02, rgb: [P.a, P.b, 10], anim: A('glitch', 0.05, 0.9) }));
+        if (sub) L.push(T({ text: '> ' + up(sub), font: 'SpaceMono-700', size: fit('> ' + up(sub), 'SpaceMono-700', 900, 36), x: 540, y: y + 80, color: P.a, anim: A('type', 0.7, 0.8) }));
+        L.push(T({ text: '[ ' + up(brand) + ' ]', font: 'SpaceMono-700', size: 26, x: 540, y: y - s - 30, color: C, anim: A('glitch', 0.4, 0.6) }));
+        break;
+      case 'maquina':
+        L.push({ type: 'dim', alpha: 0.5, anim: A('fade', 0, 0.3) });
+        s = fit(title, 'SpaceMono-700', 960, 110); y = 960;
+        L.push(T({ text: title, font: 'SpaceMono-700', size: s, x: 540, y: y, color: C, anim: A('type', 0.15, 1.1), cursor: AC }));
+        if (sub) L.push(T({ text: sub, font: 'SpaceMono-700', size: fit(sub, 'SpaceMono-700', 900, 40), x: 540, y: y + 90, color: AC, anim: A('type', 1.3, 0.9) }));
+        L.push(T({ text: '// ' + brand.toLowerCase(), font: 'SpaceMono-700', size: 26, x: 540, y: y - s - 30, color: AC, anim: A('fade', 0.1, 0.4) }));
+        break;
+      case 'empilhado': {
+        L.push({ type: 'dim', alpha: 0.3, anim: A('fade', 0, 0.4) });
+        var ws = up(title).split(/\s+/).filter(Boolean).slice(0, 4), n = ws.length, lh = Math.min(260, 900 / Math.max(1, n));
+        var top = 960 - (n * lh) / 2 + lh * 0.85;
+        ws.forEach(function (w, k) {
+          var sz = fit(w, 'Anton-400', 960, lh * 1.05, 1, -0.01);
+          L.push(T({ text: w, font: 'Anton-400', size: sz, x: 540, y: top + k * lh, color: k % 2 ? AC : C, ls: -0.01, anim: A(k % 2 ? 'slideR' : 'slideL', 0.08 + k * 0.14, 0.55) }));
+        });
+        if (sub) L.push(T({ text: up(sub), font: 'Inter-700', size: fit(up(sub), 'Inter-700', 860, 34, 1, 0.12), x: 540, y: top + n * lh - lh * 0.4, color: C, ls: 0.12, anim: A('fade', 0.4 + n * 0.14, 0.5) }));
+        break;
+      }
+      case 'revista': {
+        L.push({ type: 'dim', alpha: 0.3, anim: A('fade', 0, 0.5) });
+        var big = up(title).charAt(0);
+        L.push(T({ text: big, font: 'BodoniModa-900', size: 900, x: 540, y: 1250, color: AC, alpha: 0.55, anim: A('zoom', 0, 1.2) }));
+        s = fit(cap(title), 'DMSerifDisplay-400', 960, 190, 1, -0.01); y = 1060;
+        L.push(T({ text: cap(title), font: 'DMSerifDisplay-400', size: s, x: 540, y: y, color: C, ls: -0.01, anim: A('blur', 0.3, 0.8) }));
+        if (sub) L.push(T({ text: up(sub), font: 'Inter-700', size: fit(up(sub), 'Inter-700', 860, 32, 1, 0.2), x: 540, y: y + 76, color: C, ls: 0.2, anim: A('track', 0.6, 0.7) }));
+        L.push(T({ text: up(brand), font: 'DMSerifDisplay-400', size: 64, x: 540, y: 330, color: C, ls: 0.12, anim: A('fade', 0.2, 0.6) }));
+        L.push(T({ text: 'EDIÇÃO ' + YEAR, font: 'Inter-700', size: 24, x: 540, y: 380, color: AC, ls: 0.3, anim: A('fade', 0.4, 0.6) }));
+        break;
+      }
+      case 'assinatura':
+        L.push({ type: 'dim', alpha: 0.3, anim: A('fade', 0, 0.5) });
+        s = fit(cap(title), 'GreatVibes-400', 980, 280); y = 1010;
+        L.push(T({ text: cap(title), font: 'GreatVibes-400', size: s, x: 540, y: y, color: C, anim: A('reveal', 0.1, 1.2) }));
+        L.push({ type: 'line', x1: 300, y1: y + 50, x2: 780, y2: y + 50, w: 3, color: AC, anim: A('draw', 1.0, 0.6) });
+        if (sub) L.push(T({ text: up(sub), font: 'Inter-700', size: fit(up(sub), 'Inter-700', 860, 30, 1, 0.3), x: 540, y: y + 110, color: AC, ls: 0.3, anim: A('fade', 1.1, 0.6) }));
+        L.push(T({ text: up(brand), font: 'Inter-400', size: 26, x: 540, y: y - s * 0.9, color: C, ls: 0.4, anim: A('fade', 0.3, 0.6) }));
+        break;
+      case 'impacto':
+        L.push({ type: 'dim', alpha: 0.3, anim: A('fade', 0, 0.3) });
+        s = fit(up(title), 'ArchivoBlack-400', 1020, 300, 1, -0.04); y = 1010;
+        L.push(T({ text: up(title), font: 'ArchivoBlack-400', size: s, x: 540, y: y, color: C, ls: -0.04, anim: A('zoom', 0.05, 0.6) }));
+        L.push({ type: 'box', x: 90, y: y + 34, w: 900, h: 16, color: AC, r: 4, anim: A('wipe', 0.45, 0.4) });
+        if (sub) L.push(T({ text: up(sub), font: 'ArchivoBlack-400', size: fit(up(sub), 'ArchivoBlack-400', 880, 54), x: 540, y: y + 120, color: C, anim: A('rise', 0.55, 0.5) }));
+        break;
     }
     return L;
   }
 
-  /* ---------- desenho (mesma matemática do CineRenderer.java) ---------- */
+  /* ---------- desenho do título ---------- */
   function clamp(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
   function outCubic(a) { var b = 1 - a; return 1 - b * b * b; }
   function inCubic(a) { return a * a * a; }
   function outBack(a) { var c = 1.7; a -= 1; return 1 + a * a * ((c + 1) * a + c); }
+  function flick(t) { var k = Math.floor(t * 22); return ((k * 73 + 11) % 7) > 2 ? 1 : 0.25; }
   var hasLS = 'letterSpacing' in mctx;
 
-  function textW(ctx, el) { ctx.font = el.size + 'px "' + el.font + '"'; return ctx.measureText(el.text).width; }
   function fillSpaced(ctx, text, x, y, lsPx, mode) {
     if (!lsPx || hasLS) { if (hasLS) ctx.letterSpacing = (lsPx || 0) + 'px'; mode === 's' ? ctx.strokeText(text, x, y) : ctx.fillText(text, x, y); if (hasLS) ctx.letterSpacing = '0px'; return; }
     for (var i = 0; i < text.length; i++) { var ch = text[i]; mode === 's' ? ctx.strokeText(ch, x, y) : ctx.fillText(ch, x, y); x += ctx.measureText(ch).width + lsPx; }
   }
+  function rrect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r); ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h); ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r); ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath(); }
 
-  function draw(ctx, layers, t, tEnd) {
+  function draw(ctx, layers, t, tEnd, tf) {
+    tf = tf || { ox: 0, oy: 0, s: 1 };
     var out = inCubic(clamp((t - (tEnd - 0.45)) / 0.45));
     for (var i = 0; i < layers.length; i++) {
-      var el = layers[i], an = el.anim || { k: 'fade', d: 0, u: 0.5 };
+      var el = layers[i], an = el.anim || A('fade', 0, 0.5);
       var p = clamp((t - an.d) / an.u), e = outCubic(p);
-      var alpha = e * (1 - out);
+      var alpha = e * (1 - out) * (el.alpha != null && el.type === 'text' ? el.alpha : 1);
+      if (an.k === 'flicker' && p < 1) alpha *= flick(t);
+      if (an.k === 'glitch') alpha = (p > 0 ? 1 : 0) * (1 - out) * (p < 1 ? flick(t + 0.3) : 1);
       if (alpha <= 0.004) continue;
       ctx.save();
       ctx.globalAlpha = alpha;
@@ -142,48 +240,122 @@
         g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.82, 'rgba(0,0,0,' + el.alpha * 0.85 + ')'); g.addColorStop(1, 'rgba(0,0,0,' + el.alpha + ')');
         ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.restore(); continue;
       }
+      ctx.translate(540 + tf.ox, 960 + tf.oy); ctx.scale(tf.s, tf.s); ctx.translate(-540, -960);
       if (el.type === 'line') {
         var cx = (el.x1 + el.x2) / 2, half = (el.x2 - el.x1) / 2 * (an.k === 'draw' ? e : 1);
         ctx.strokeStyle = el.color; ctx.lineWidth = el.w; ctx.beginPath(); ctx.moveTo(cx - half, el.y1); ctx.lineTo(cx + half, el.y2); ctx.stroke(); ctx.restore(); continue;
       }
-      if (el.type === 'oval') {
-        ctx.strokeStyle = el.color; ctx.lineWidth = el.w; ctx.beginPath(); ctx.ellipse(el.cx, el.cy, el.rx, el.ry, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); continue;
+      if (el.type === 'oval') { ctx.strokeStyle = el.color; ctx.lineWidth = el.w; ctx.beginPath(); ctx.ellipse(el.cx, el.cy, el.rx, el.ry, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); continue; }
+      if (el.type === 'box') {
+        var bw = el.w * (an.k === 'wipe' ? e : 1);
+        ctx.fillStyle = el.color; rrect(ctx, el.x, el.y, Math.max(1, bw), el.h, Math.min(el.r || 0, bw / 2)); ctx.fill(); ctx.restore(); continue;
       }
       // texto
-      var blur = 0, scale = 1, sy = 1, dy = 0, ls = el.ls, reveal = 1;
+      var blur = 0, scale = 1, sy = 1, dx = 0, dy = 0, ls = el.ls, reveal = 1, text = el.text;
       if (an.k === 'blur') { blur = 30 * (1 - e); scale = 1.12 - 0.12 * e; ls += 0.25 * (1 - e); }
       else if (an.k === 'rise') { dy = 70 * (1 - e); blur = 10 * (1 - e); }
       else if (an.k === 'reveal') { reveal = e; }
       else if (an.k === 'stretch') { sy = 0.35 + 0.65 * e; blur = 18 * (1 - e); }
       else if (an.k === 'track') { ls += 0.5 * (1 - e); blur = 8 * (1 - e); }
       else if (an.k === 'pop') { scale = 0.55 + 0.45 * outBack(p); }
+      else if (an.k === 'zoom') { scale = 1.9 - 0.9 * e; blur = 20 * (1 - e); }
+      else if (an.k === 'slideL') { dx = -260 * (1 - e); blur = 12 * (1 - e); }
+      else if (an.k === 'slideR') { dx = 260 * (1 - e); blur = 12 * (1 - e); }
+      else if (an.k === 'type') { text = el.text.slice(0, Math.round(el.text.length * p)); }
+      else if (an.k === 'glitch' && p < 1) { dx = (flick(t * 1.7) - 0.6) * 30; }
       blur += 16 * out; dy -= 34 * out;
       ctx.font = el.size + 'px "' + el.font + '"';
-      var lsPx = ls * el.size, w = (ctx.measureText(el.text).width + lsPx * el.text.length) * el.sx;
-      var x0 = el.align === 'left' ? el.x : el.align === 'right' ? el.x - w : el.x - w / 2;
-      ctx.translate(el.x, el.y + dy);
+      var lsPx = ls * el.size, fullW = (ctx.measureText(el.text).width + lsPx * el.text.length) * el.sx;
+      var x0 = el.align === 'left' ? el.x : el.align === 'right' ? el.x - fullW : el.x - fullW / 2;
+      ctx.translate(el.x + dx, el.y + dy);
       if (el.rot) ctx.rotate(el.rot * Math.PI / 180);
       ctx.scale(scale * el.sx, scale * sy);
       var lx = (x0 - el.x) / el.sx;
-      if (reveal < 1) { ctx.beginPath(); ctx.rect(lx - 40, -el.size * 1.4, (w / el.sx + 80) * reveal, el.size * 2.4); ctx.clip(); }
-      if (blur > 0.5) ctx.filter = 'blur(' + blur.toFixed(1) + 'px)';
+      if (reveal < 1) { ctx.beginPath(); ctx.rect(lx - 40, -el.size * 1.4, (fullW / el.sx + 80) * reveal, el.size * 2.4); ctx.clip(); }
       ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      var baseFilter = blur > 0.5 ? 'blur(' + blur.toFixed(1) + 'px)' : 'none';
+      if (el.glow) { ctx.filter = 'blur(' + (18 + blur).toFixed(1) + 'px)'; ctx.fillStyle = el.glow; ctx.strokeStyle = el.glow; ctx.lineWidth = (el.outline || 4) * 2; el.outline ? fillSpaced(ctx, text, lx, 0, lsPx, 's') : fillSpaced(ctx, text, lx, 0, lsPx, 'f'); }
+      ctx.filter = baseFilter;
+      if (el.rgb) {
+        var off = el.rgb[2] * (an.k === 'glitch' && p < 1 ? 2.2 : 1);
+        ctx.globalAlpha = alpha * 0.85; ctx.fillStyle = el.rgb[0]; fillSpaced(ctx, text, lx - off, 0, lsPx, 'f');
+        ctx.fillStyle = el.rgb[1]; fillSpaced(ctx, text, lx + off, 0, lsPx, 'f'); ctx.globalAlpha = alpha;
+      }
       if (el.shadow) {
         ctx.fillStyle = el.shadow.color; ctx.strokeStyle = el.shadow.color;
-        if (el.shadow.sw) { ctx.lineWidth = el.shadow.sw * 2; ctx.lineJoin = 'round'; fillSpaced(ctx, el.text, lx, 0, lsPx, 's'); }
-        fillSpaced(ctx, el.text, lx + el.shadow.dx / el.sx, el.shadow.dy, lsPx, 'f');
+        if (el.shadow.sw) { ctx.lineWidth = el.shadow.sw * 2; ctx.lineJoin = 'round'; fillSpaced(ctx, text, lx, 0, lsPx, 's'); }
+        fillSpaced(ctx, text, lx + el.shadow.dx / el.sx, el.shadow.dy, lsPx, 'f');
       }
-      ctx.fillStyle = el.color;
-      fillSpaced(ctx, el.text, lx, 0, lsPx, 'f');
+      if (el.outline) { ctx.strokeStyle = el.color; ctx.lineWidth = el.outline; ctx.lineJoin = 'round'; fillSpaced(ctx, text, lx, 0, lsPx, 's'); }
+      else { ctx.fillStyle = el.color; fillSpaced(ctx, text, lx, 0, lsPx, 'f'); }
+      if (el.cursor && an.k === 'type' && (p < 1 || Math.floor(t * 2.5) % 2 === 0)) {
+        ctx.filter = 'none'; ctx.font = el.size + 'px "' + el.font + '"';
+        var cw = ctx.measureText(text).width + lsPx * text.length;
+        ctx.fillStyle = el.cursor; ctx.fillRect(lx + cw + 8, -el.size * 0.78, el.size * 0.5, el.size * 0.9);
+      }
       ctx.restore();
     }
   }
 
-  var FAMS = ['DMSerifDisplay-400', 'GreatVibes-400', 'Yellowtail-400', 'BodoniModa-900', 'Shrikhand-400', 'PlayfairDisplay-900', 'ArchivoBlack-400', 'Anton-400', 'Inter-400', 'Inter-700', 'BebasNeue-400', 'Unbounded-800', 'SpaceGrotesk-700', 'Caveat-700', 'PlayfairDisplay-600i'];
+  /* ---------- legenda ---------- */
+  var CAP_DEFAULT = { font: 'Montserrat-800', upper: false, size: 1, ls: 0, shadow: 'outline', hl: 'box', anim: 'pop', y: 0.73, color: '#FFFFFF', accent: '#FF7A1A' };
+  function capWrap(ctx, words, maxW, space) {
+    var lines = [], lw = 0, from = 0;
+    for (var i = 0; i < words.length; i++) {
+      var w = ctx.measureText(words[i]).width;
+      if (i > from && lw + space + w > maxW) { lines.push([from, i]); from = i; lw = w; } else lw += (i > from ? space : 0) + w;
+    }
+    lines.push([from, words.length]);
+    return lines;
+  }
+  function drawCaption(ctx, k, t, cs, emph) {
+    cs = cs || CAP_DEFAULT;
+    var p = clamp((t - k.s) / 0.16), a = outCubic(p), sc = 1, alpha = a;
+    if (cs.anim === 'pop') sc = 0.86 + 0.14 * a;
+    else if (cs.anim === 'bounce') sc = 0.6 + 0.4 * outBack(p);
+    else if (cs.anim === 'none' || cs.anim === 'type') alpha = 1;
+    var size = 76 * cs.size * (emph ? 1.22 : 1);
+    ctx.save();
+    ctx.font = size + 'px "' + cs.font + '"';
+    if (hasLS) ctx.letterSpacing = (cs.ls * size) + 'px';
+    var words = k.words.map(function (w) { return cs.upper ? w.w.toUpperCase() : w.w; });
+    var space = ctx.measureText(' ').width * 1.1 + cs.ls * size, lines = capWrap(ctx, words, 940, space);
+    var lh = size * 1.28, baseY = H * cs.y - lh * (lines.length - 1) / 2;
+    ctx.translate(540, baseY); ctx.scale(sc, sc); ctx.translate(-540, -baseY);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.lineJoin = 'round';
+    for (var li = 0; li < lines.length; li++) {
+      var L = lines[li], tot = 0;
+      for (var i = L[0]; i < L[1]; i++) tot += ctx.measureText(words[i]).width + (i > L[0] ? space : 0);
+      var x = 540 - tot / 2, y = baseY + li * lh;
+      for (var j = L[0]; j < L[1]; j++) {
+        var ww = ctx.measureText(words[j]).width, wd = k.words[j];
+        var vis = cs.anim !== 'type' || t >= wd.s - 0.05;
+        if (vis) {
+          var on = t >= wd.s && t < wd.e + 0.08, color = cs.color, boxed = on && cs.hl === 'box';
+          ctx.globalAlpha = alpha;
+          if (boxed) { ctx.fillStyle = cs.accent; rrect(ctx, x - 14, y - size * 0.86, ww + 28, size * 1.1, 16); ctx.fill(); color = '#0A0A0A'; }
+          else if (on && cs.hl === 'color') color = cs.accent;
+          if (!boxed) {
+            if (cs.shadow === 'outline') { ctx.strokeStyle = '#000'; ctx.lineWidth = size * 0.16; ctx.strokeText(words[j], x, y); }
+            else if (cs.shadow === 'hard') { ctx.fillStyle = '#000'; ctx.fillText(words[j], x + size * 0.07, y + size * 0.07); }
+            else if (cs.shadow === 'soft') { ctx.filter = 'blur(' + (size * 0.14).toFixed(1) + 'px)'; ctx.fillStyle = 'rgba(0,0,0,.85)'; ctx.fillText(words[j], x, y + size * 0.06); ctx.filter = 'none'; }
+            else if (cs.shadow === 'glow') { ctx.filter = 'blur(' + (size * 0.18).toFixed(1) + 'px)'; ctx.fillStyle = cs.accent; ctx.fillText(words[j], x, y); ctx.filter = 'none'; }
+          }
+          ctx.fillStyle = color; ctx.fillText(words[j], x, y);
+          if (on && cs.hl === 'underline') { ctx.fillStyle = cs.accent; rrect(ctx, x, y + 14, ww, 10, 5); ctx.fill(); }
+        }
+        x += ww + space;
+      }
+    }
+    if (hasLS) ctx.letterSpacing = '0px';
+    ctx.restore();
+  }
+
+  var FAMS = ['DMSerifDisplay-400', 'GreatVibes-400', 'Yellowtail-400', 'BodoniModa-900', 'Shrikhand-400', 'PlayfairDisplay-900', 'ArchivoBlack-400', 'Anton-400', 'Inter-400', 'Inter-700', 'BebasNeue-400', 'Unbounded-800', 'SpaceGrotesk-700', 'Caveat-700', 'PlayfairDisplay-600i', 'SpaceMono-700', 'Montserrat-800', 'Poppins-800', 'Oswald-700', 'Bangers-400'];
   function loadFonts() {
     if (!document.fonts || !document.fonts.load) return Promise.resolve();
     return Promise.all(FAMS.map(function (f) { return document.fonts.load('40px "' + f + '"').catch(function () {}); }));
   }
 
-  root.FluxTitles = { MODELS: MODELS, layout: layout, draw: draw, loadFonts: loadFonts, W: W, H: H };
+  root.FluxTitles = { MODELS: MODELS, layout: layout, draw: draw, drawCaption: drawCaption, CAP_DEFAULT: CAP_DEFAULT, loadFonts: loadFonts, W: W, H: H };
 })(window);

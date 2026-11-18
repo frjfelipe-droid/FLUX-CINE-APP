@@ -31,7 +31,11 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Monta o vídeo final: corta e junta os trechos, aplica camada gráfica, mixa efeitos e exporta MP4. Chamar na thread principal. */
+/**
+ * Monta o vídeo final: corta e junta os trechos (com velocidade: rápido, lento, pausa),
+ * aplica a camada gráfica e o zoom de impacto, mistura a trilha de efeitos e exporta MP4.
+ * Chamar na thread principal.
+ */
 final class CineExporter {
     interface Listener {
         void onProgress(int percent);
@@ -46,40 +50,52 @@ final class CineExporter {
         CineSpec spec = CineSpec.from(ctx, o);
         JSONArray segs = o.getJSONArray("segments");
 
-        List<long[]> sfxEvents = new ArrayList<>();
-        int mainSfx = SfxSynth.type(o.optString("sfx", "none"));
-        if (mainSfx >= 0) {
-            sfxEvents.add(new long[]{120_000, mainSfx});
-            for (double b : spec.boundaries) sfxEvents.add(new long[]{Math.max(0, (long) ((b - 0.35) * 1e6)), SfxSynth.WHOOSH});
-            if (!spec.cta.isEmpty()) sfxEvents.add(new long[]{(long) (spec.ctaStart() * 1e6), SfxSynth.POP});
-        }
-
         CineRenderer renderer = new CineRenderer(spec);
         List<EditedMediaItem> items = new ArrayList<>();
         long globalUs = 0;
         for (int i = 0; i < segs.length(); i++) {
             JSONObject s = segs.getJSONObject(i);
-            long startMs = s.getLong("startMs"), endMs = s.getLong("endMs");
+            long startMs = s.getLong("startMs"), endMs = Math.max(s.getLong("startMs") + 40, s.getLong("endMs"));
+            float speed = (float) s.optDouble("speed", 1);
+            if (speed <= 0) speed = 1;
             MediaItem mi = new MediaItem.Builder()
                     .setUri(Uri.fromFile(new File(s.getString("path"))))
                     .setClippingConfiguration(new MediaItem.ClippingConfiguration.Builder()
                             .setStartPositionMs(startMs).setEndPositionMs(endMs).build())
                     .build();
+            long durUs = (long) ((endMs - startMs) * 1000L / speed);
             List<Effect> video = new ArrayList<>();
             video.add(FrameDropEffect.createDefaultFrameDropEffect(30f));
             video.add(Presentation.createForWidthAndHeight(spec.outW, spec.outH, Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP));
-            if (spec.ending.equals("zoom")) video.add(new ZoomTransform(globalUs, spec.total));
+            if (spec.finalStart >= 0 && (globalUs + durUs) / 1e6 > spec.finalStart) video.add(new ImpactZoom(globalUs, spec.finalStart));
             video.add(new OverlayEffect(ImmutableList.<TextureOverlay>of(new CineOverlay(renderer, globalUs))));
-            List<AudioProcessor> audio = new ArrayList<>();
-            if (!sfxEvents.isEmpty()) audio.add(new SfxMixer(globalUs, sfxEvents));
-            items.add(new EditedMediaItem.Builder(mi).setEffects(new Effects(audio, video)).build());
-            globalUs += (endMs - startMs) * 1000L;
+            EditedMediaItem.Builder b = new EditedMediaItem.Builder(mi).setEffects(new Effects(ImmutableList.<AudioProcessor>of(), video));
+            if (s.optBoolean("removeAudio", false)) b.setRemoveAudio(true);
+            if (Math.abs(speed - 1f) > 0.001f) b.setSpeed(new ConstSpeed(speed));
+            items.add(b.build());
+            globalUs += durUs;
         }
+        EditedMediaItemSequence mainSeq = EditedMediaItemSequence.withAudioAndVideoFrom(items);
 
-        Composition composition = new Composition.Builder(new EditedMediaItemSequence(items))
-                .experimentalSetForceAudioTrack(true)
-                .setHdrMode(Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL)
-                .build();
+        // trilha de efeitos sonoros: título, cada corte, final de impacto e CTA
+        int mainSfx = SfxSynth.type(o.optString("sfx", "none"));
+        List<long[]> ev = new ArrayList<>();
+        if (mainSfx >= 0) {
+            ev.add(new long[]{120_000, mainSfx});
+            for (double bd : spec.boundaries) ev.add(new long[]{Math.max(0, (long) ((bd - 0.32) * 1e6)), SfxSynth.WHOOSH});
+            if (spec.finalStart > 0.3) ev.add(new long[]{(long) (spec.finalStart * 1e6), SfxSynth.IMPACT});
+            if (!spec.cta.isEmpty()) ev.add(new long[]{(long) (spec.ctaStart() * 1e6), SfxSynth.POP});
+        }
+        Composition.Builder cb;
+        if (!ev.isEmpty()) {
+            File wav = SfxSynth.writeTrack(new File(ctx.getCacheDir(), "sfx-track.wav"), ev, spec.total);
+            EditedMediaItemSequence sfxSeq = EditedMediaItemSequence.withAudioFrom(ImmutableList.of(
+                    new EditedMediaItem.Builder(MediaItem.fromUri(Uri.fromFile(wav))).build()));
+            cb = new Composition.Builder(mainSeq, sfxSeq);
+        } else {
+            cb = new Composition.Builder(mainSeq);
+        }
+        Composition composition = cb.setHdrMode(Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL).build();
 
         transformer = new Transformer.Builder(ctx)
                 .setVideoMimeType(MimeTypes.VIDEO_H264)

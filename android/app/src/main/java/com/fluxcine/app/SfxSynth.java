@@ -1,5 +1,11 @@
 package com.fluxcine.app;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.List;
 import java.util.Random;
 
 /** Efeitos sonoros sintetizados no aparelho (sem arquivos de áudio). */
@@ -96,5 +102,27 @@ final class SfxSynth {
             default:
                 return new float[0];
         }
+    }
+
+    /** Grava uma trilha WAV (48 kHz, estéreo) com todos os efeitos no tempo certo do vídeo final. */
+    static File writeTrack(File out, List<long[]> events, double totalSec) throws Exception {
+        int rate = 48000;
+        int n = (int) Math.max(rate * 0.2, (totalSec - 0.05) * rate);
+        float[] mix = new float[n];
+        for (long[] ev : events) {
+            float[] snd = make((int) ev[1], rate);
+            int st = (int) (ev[0] * rate / 1_000_000L);
+            for (int i = 0; i < snd.length; i++) { int k = st + i; if (k >= 0 && k < n) mix[k] += snd[i] * 0.9f; }
+        }
+        ByteBuffer bb = ByteBuffer.allocate(44 + n * 4).order(ByteOrder.LITTLE_ENDIAN);
+        bb.put("RIFF".getBytes()).putInt(36 + n * 4).put("WAVE".getBytes());
+        bb.put("fmt ".getBytes()).putInt(16).putShort((short) 1).putShort((short) 2).putInt(rate).putInt(rate * 4).putShort((short) 4).putShort((short) 16);
+        bb.put("data".getBytes()).putInt(n * 4);
+        for (int i = 0; i < n; i++) {
+            short v = (short) Math.max(-32768, Math.min(32767, mix[i] * 32767f));
+            bb.putShort(v).putShort(v);
+        }
+        try (OutputStream os = new FileOutputStream(out)) { os.write(bb.array()); }
+        return out;
     }
 }

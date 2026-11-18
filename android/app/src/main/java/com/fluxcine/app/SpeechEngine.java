@@ -178,6 +178,7 @@ final class SpeechEngine {
                 j.put("w", w.getString("word"));
                 j.put("s", w.getDouble("start"));
                 j.put("e", w.getDouble("end"));
+                j.put("c", w.optDouble("conf", 1));
                 out.put(j);
             }
         } catch (Exception ignored) { }

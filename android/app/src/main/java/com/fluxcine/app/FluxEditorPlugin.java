@@ -183,10 +183,9 @@ public class FluxEditorPlugin extends Plugin {
     }
 
     private void startRender(PluginCall call, JSONObject o) throws Exception {
-        File dir = new File(getContext().getCacheDir(), "exports");
+        // cada vídeo fica guardado no Perfil (pasta privada do app)
+        File dir = new File(getContext().getFilesDir(), "projects");
         dir.mkdirs();
-        File[] old = dir.listFiles();
-        if (old != null) for (File f : old) f.delete();
         final File out = new File(dir, "FLUX-CINE-" + System.currentTimeMillis() + ".mp4");
         exporter = new CineExporter();
         exporter.export(getContext(), o, out, new CineExporter.Listener() {
@@ -199,12 +198,42 @@ public class FluxEditorPlugin extends Plugin {
                 JSObject ret = new JSObject();
                 ret.put("path", out.getAbsolutePath());
                 ret.put("durationMs", durationMs);
+                ret.put("thumb", thumbOf(out.getAbsolutePath(), Math.min(1_500_000L, durationMs * 500L)));
                 call.resolve(ret);
             }
             @Override public void onError(String message) {
                 call.reject(message);
             }
         });
+    }
+
+    private static String thumbOf(String path, long atUs) {
+        try {
+            MediaMetadataRetriever r = new MediaMetadataRetriever();
+            r.setDataSource(path);
+            Bitmap frame = r.getFrameAtTime(Math.max(0, atUs), MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
+            r.release();
+            if (frame == null) return "";
+            int w = frame.getWidth() > frame.getHeight() ? 427 : 240;
+            int h = Math.max(1, frame.getHeight() * w / Math.max(1, frame.getWidth()));
+            Bitmap small = Bitmap.createScaledBitmap(frame, w, h, true);
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            small.compress(Bitmap.CompressFormat.JPEG, 70, bos);
+            return "data:image/jpeg;base64," + Base64.encodeToString(bos.toByteArray(), Base64.NO_WRAP);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    @PluginMethod
+    public void deleteFile(PluginCall call) {
+        String path = call.getString("path", "");
+        File f = new File(path);
+        try {
+            String base = getContext().getFilesDir().getCanonicalPath();
+            if (f.getCanonicalPath().startsWith(base)) f.delete();
+        } catch (Exception ignored) { }
+        call.resolve();
     }
 
     @PluginMethod

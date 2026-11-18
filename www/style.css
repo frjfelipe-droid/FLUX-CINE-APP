@@ -123,3 +123,40 @@ section{display:flex;flex-direction:column;gap:12px;margin-top:24px}
 .cta:disabled{background:var(--line);color:var(--mut)}
 .toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:13px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
+
+/* ---------- v2: vídeos, títulos cinematográficos, escuta, Instagram ---------- */
+.thumb video,.preview video,.sthumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,0) 35%,rgba(0,0,0,.7))}
+.ctitle{position:absolute;left:10px;right:10px;top:36%;text-align:center;color:#fff;line-height:1.05;text-shadow:0 4px 24px rgba(0,0,0,.6);animation:cine 4.4s cubic-bezier(.2,.7,.2,1) infinite}
+.cbar{display:block;height:4px;width:44px;margin:9px auto 0;border-radius:2px;animation:cbar 4.4s ease infinite}
+@keyframes cine{0%{opacity:0;filter:blur(16px);letter-spacing:.38em;transform:scale(1.16)}18%{opacity:1;filter:blur(0);letter-spacing:.01em;transform:scale(1)}78%{opacity:1;filter:blur(0);transform:translateY(0)}92%,100%{opacity:0;filter:blur(12px);transform:translateY(-12px)}}
+@keyframes cbar{0%,10%{transform:scaleX(0)}26%,78%{transform:scaleX(1)}90%,100%{transform:scaleX(0)}}
+.trend-row{display:flex;gap:10px;overflow-x:auto;margin:0 -20px;padding:2px 20px 4px;scrollbar-width:none}
+.trend-row::-webkit-scrollbar{display:none}
+.trend{flex-shrink:0;width:172px;min-height:98px;border-radius:18px;padding:14px;text-align:left;background:var(--s1);border:1px solid var(--line);display:flex;flex-direction:column;justify-content:space-between;gap:8px}
+.trend .fire{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--lime)}
+.trend b{font-size:14px;line-height:1.25}
+.trend span.u{font-size:12px;color:var(--mut)}
+.sechead{display:flex;align-items:baseline;justify-content:space-between;margin:22px 0 12px}
+.sechead small{font-size:11px;color:var(--dim)}
+.listen{margin-top:16px;border-radius:20px;background:var(--s1);border:1px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:12px}
+.listen .row{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}.bar i{display:block;height:100%;background:var(--lime);border-radius:3px;transition:width .25s}
+.transcript{font-size:14px;line-height:1.5;color:#D4D4D8;max-height:120px;overflow:auto}
+.transcript b{color:var(--mut);font-weight:600;font-size:11px;letter-spacing:.06em;text-transform:uppercase;display:block;margin:6px 0 2px}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;padding:4px 0}
+.toggle .sw{width:48px;height:28px;border-radius:14px;background:#3F3F46;position:relative;flex-shrink:0;transition:background .2s}
+.toggle .sw i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:11px;background:#fff;transition:transform .2s}
+.toggle.on .sw{background:var(--lime)}.toggle.on .sw i{transform:translateX(20px)}
+.stat{display:flex;gap:8px;flex-wrap:wrap}
+.stat span{padding:6px 10px;border-radius:8px;background:var(--s2);font-size:12px;color:#D4D4D8}
+.stat span b{color:var(--lime)}
+.preview{height:300px}
+.preview .ctitle{top:40%;animation-iteration-count:infinite}
+.final video.out{opacity:1}
+.capbox{margin-top:18px;display:flex;flex-direction:column;gap:10px;text-align:left;width:100%}
+.tags.left{justify-content:flex-start;margin-top:0}
+.tag.pick{cursor:pointer}.tag.pick.on{border-color:var(--lime);color:var(--lime);background:var(--limebg)}
+.btn.insta{background:var(--lime);color:var(--bg)}
+.note{font-size:12px;color:var(--mut);text-align:center;margin-top:6px;line-height:1.4}
+.err{margin-top:14px;padding:12px 14px;border-radius:14px;background:#2A0E0E;border:1px solid #5C1D1D;color:#FCA5A5;font-size:13px;line-height:1.4}

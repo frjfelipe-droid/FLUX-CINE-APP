@@ -171,9 +171,9 @@
         var tt = title.toLowerCase(), cut = Math.max(1, Math.round(tt.length * 0.62));
         var sp2 = tt.lastIndexOf(' ', cut); if (sp2 > 2) cut = sp2 + 1;
         var p1 = tt.slice(0, cut).replace(/\s+$/, ''), p2 = tt.slice(cut);
-        var ts = 220;
-        while (ts > 40 && width(p1, 'CormorantGaramond-500', ts) + width(p2, 'CormorantGaramond-600i', ts) > 1000) ts -= 6;
-        var w1x = width(p1, 'CormorantGaramond-500', ts), w2x = width(p2, 'CormorantGaramond-600i', ts), xs = 540 - (w1x + w2x) / 2; y = 1010;
+        var ts = 220, gk = /\s$/.test(tt.slice(0, cut)) ? 0.16 : 0;
+        while (ts > 40 && width(p1, 'CormorantGaramond-500', ts) + width(p2, 'CormorantGaramond-600i', ts) + gk * ts > 1000) ts -= 6;
+        var w1x = width(p1, 'CormorantGaramond-500', ts) + gk * ts, w2x = width(p2, 'CormorantGaramond-600i', ts), xs = 540 - (w1x + w2x) / 2; y = 1010;
         L.push(T({ text: p1, font: 'CormorantGaramond-500', size: ts, x: xs, y: y, align: 'left', color: C, anim: A('blur', 0.1, 0.9) }));
         L.push(T({ text: p2, font: 'CormorantGaramond-600i', size: ts, x: xs + w1x, y: y, align: 'left', color: C, anim: A('blur', 0.35, 0.9) }));
         if (sub) {

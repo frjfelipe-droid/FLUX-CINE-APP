@@ -134,7 +134,7 @@ public class ExportTest {
         toDownloads(target, "report.json", "application/json", report.toString(2).getBytes("UTF-8"));
         assertTrue("Whisper não ouviu a fala: " + heard, words.length() >= 12);
         String low = heard.toString().toLowerCase();
-        assertTrue("transcrição errada: " + heard, low.contains("erros") && low.contains("clientes"));
+        assertTrue("transcrição errada: " + heard, low.contains("todos os dias") && low.contains("?"));
         Log.i(TAG, "report=" + report);
         for (String key : new String[]{"A", "B", "D", "K"}) {
             assertTrue("export " + key + " falhou: " + report.getJSONObject(key).optString("error"), report.getJSONObject(key).optBoolean("ok"));

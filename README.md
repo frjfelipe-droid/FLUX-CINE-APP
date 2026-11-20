@@ -1,37 +1,54 @@
-# FLUX CINE — app Android
+# FLUX CINE — Android e iPhone
 
 Vídeos cinematográficos para empresários, editados no próprio celular.
 
 ## Fluxo
 1. **Abertura**: logo animado → 3 perguntas → apresentação (Acesso VIP ou Continuar no gratuito).
 2. **Cinemático (1 vídeo)** ou **Dinâmico (vários vídeos)**.
-3. **30 títulos cinematográficos** (15 estilos × 2 cores). Toque para ver a prévia, **arraste** o título e ajuste o **tamanho**.
+3. **46 títulos cinematográficos** (23 estilos × 2 cores), incluindo os estilos de cartaz: Paraíso (vertical), Verão,
+   Domingo, Além, Vlog de Viagem (em arco), A Última Chamada, Marcador (escrito à mão) e Tudo Passa (serifa elegante).
+   A prévia fica travada; para posicionar, toque em **Mover título**, arraste, ajuste o tamanho e toque em **Pronto**.
 4. **Estrutura da fala**: o app escuta e separa
-   - **Gancho**: sempre uma pergunta. Vai para o início, com corte limpo, sem cortar palavras;
+   - **Gancho**: sempre uma pergunta ("?" da transcrição ou palavras de pergunta). Vai para o início, sem cortar palavras;
    - **Mensagem**;
    - **Final de impacto**: zoom "soco", efeito de impacto e legenda maior.
-   Repetições (quando a pessoa grava a mesma frase de novo) são removidas, ficando a última tomada. Dá para tirar ou pôr qualquer trecho.
-5. **Dinâmico**: chips (vídeos curtos) com cortes **rápidos, lentos e pausas** → mensagem → final de impacto, num vídeo só. 6 modelos de ritmo.
-6. **Legenda em linha do tempo**: player do corte, trilha com gancho/mensagem/final, blocos de legenda editáveis.
-   Estilos: 14 fontes, tamanho, espaçamento, sombra (contorno, suave, dura, brilho), efeito (pop, pulo, surgir, palavra a palavra), destaque, cor e posição.
-7. **Áudio difícil de entender** → o app pergunta: legenda sim/não, efeitos sim/não.
-8. **Alta (grátis) ou 4K (VIP)** → salvo no **Perfil** (assistir, baixar, compartilhar, postar no Instagram, reeditar, apagar).
+5. **Cortes inteligentes** (aba Cortes): tira silêncios, vícios ("é", "né", "tipo"), gaguejos e palavras repetidas,
+   remove repetições de frase (fica a última tomada) e dá um leve zoom alternado a cada corte.
+6. **Dinâmico**: chips com cortes **rápidos, lentos e pausas** → mensagem → final de impacto, num vídeo só.
+7. **Editor com abas**: player com a cor aplicada ao vivo e linha do tempo com **agulha fixa no centro**
+   (arraste a régua para navegar; toque num bloco para corrigir a legenda).
+   - **Legenda**: 14+ fontes, tamanho, espaçamento, sombra, efeito, destaque, cor e posição.
+   - **Color Cine**: 9 colorações de cinema (Blockbuster, Kodak 400, Fuji Verde, Hora Dourada, Anos 70, Bleach Bypass,
+     Luar, Neon Noite, Noir P&B), intensidade, **granulação de filme**, vinheta e faixas de cinema.
+   - **Cortes** e **Som e final** (efeitos sonoros, CTA, Alta/4K).
+8. Salvo no **Perfil** (assistir, baixar, compartilhar, postar no Instagram, reeditar, apagar).
+
+## Legenda precisa
+- **Android**: Whisper (whisper.cpp) rodando no aparelho, sem internet, com pontuação e tempo de cada palavra
+  (modelo base incluído). Na aba Legenda dá para ativar o **modo ultra preciso** (modelo small, baixa 190 MB uma vez).
+- **iPhone**: reconhecimento de fala da Apple em português, no aparelho, com pontuação.
 
 ## Como o vídeo é montado (tudo no aparelho)
-- `SpeechEngine.java`: Vosk PT-BR offline, com tempo e confiança de cada palavra.
-- `www/app.js` › `analyze()` / `timeline()`: frases, repetições, gancho-pergunta, final de impacto, montagem dos chips e legendas.
-- `www/titles.js`: os 30 modelos e o desenho da legenda (a prévia do app).
-- `TitleLayer.java` / `CineRenderer.java`: o mesmo desenho no vídeo final.
-- `CineExporter.java`: Media3 1.9. Chips com velocidade são gravados antes; depois tudo é juntado com título,
-  legenda, zoom de impacto e a trilha de efeitos (`SfxSynth.writeTrack`).
+- `www/app.js` › `analyze()` / `keptSegments()` / `timeline()`: gancho, cortes, montagem e legendas.
+- `www/titles.js`: títulos e legenda; `www/grade.js`: Color Cine (shader WebGL da prévia).
+- **Android**: `SpeechEngine.java` + `cpp/whisper_jni.cpp`; `CineExporter.java` (Media3), `CineGrade.java` (mesmo shader),
+  `TitleLayer.java` / `CineRenderer.java` (mesmo desenho da prévia).
+- **iPhone**: `ios/App/App/FluxEditorPlugin.swift`, `CineExport.swift` (AVFoundation + compositor próprio + Core Image),
+  `CineDraw.swift` (títulos e legenda em Core Graphics).
 
 ## Builds automáticos (GitHub Actions)
-- **Gerar APK do FLUX CINE**: publica o `FLUX-CINE.apk` em *Releases*.
-- **Testar edição no Android**: Android virtual que abre o app e exporta vídeos de teste (cinemático, legenda com brilho,
-  dinâmico com chips rápido/lento/pausa e 4K). As fotos dos quadros ficam em *Releases › ci-frames*.
+- **Gerar APK do FLUX CINE** → `FLUX-CINE.apk` em *Releases*.
+- **Gerar versão iOS do FLUX CINE** → `FLUX-CINE.ipa` em *Releases* (sem assinatura) e teste no simulador de iPhone
+  (quadros em *Releases › ci-ios*).
+- **Testar edição no Android** → Whisper + exportações de teste; quadros em *Releases › ci-frames*.
+
+## Instalar no iPhone
+A Apple não deixa instalar apps fora da App Store sem assinatura. Duas opções:
+1. **Sideloadly** ou **AltStore** (grátis): no computador, abra o `FLUX-CINE.ipa`, entre com seu Apple ID e instale.
+   Com Apple ID gratuito o app vale 7 dias e precisa ser reinstalado.
+2. **Conta Apple Developer** (US$ 99/ano): publica no TestFlight/App Store, sem prazo.
 
 ## Limites atuais
 - **Tendências**: o Instagram não libera esses dados. A seção "Em alta" é curada.
 - **Postagem direta** exige app aprovado pela Meta. Hoje o app abre o Instagram com o vídeo e copia a legenda.
-- **Pagamento VIP**: depende de publicar na Google Play. Há um "VIP de teste".
-- **Gancho**: a pergunta é reconhecida pelas palavras ("você sabia", "como", "por que", "qual"…), não pela entonação.
+- **Pagamento VIP**: depende de publicar nas lojas. Há um "VIP de teste".

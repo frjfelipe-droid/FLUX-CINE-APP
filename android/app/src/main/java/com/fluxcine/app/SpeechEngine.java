@@ -63,6 +63,9 @@ final class SpeechEngine {
         loaded = want.getName();
     }
 
+    /** Carrega o modelo em segundo plano assim que o app abre (a primeira legenda sai mais rápido). */
+    void warmup() { try { ensureModel(); } catch (Exception ignored) {} }
+
     synchronized void release() { if (handle != 0) { Whisper.nativeFree(handle); handle = 0; loaded = null; } }
 
     JSONArray transcribe(String path, Progress progress) throws Exception {

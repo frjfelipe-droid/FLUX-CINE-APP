@@ -8,38 +8,77 @@ import UIKit
 // MARK: - Color Cine
 
 enum CineGrade {
-    static let kernel: CIColorKernel? = {
+    static let kernel: CIKernel? = {
         let src = """
-        kernel vec4 fluxGrade(__sample s, vec3 lift, vec3 gam, vec3 gain, vec3 shd, vec3 hig, vec4 p1, vec4 p2, vec2 size, float time) {
-            vec3 src = s.rgb;
-            vec3 c = (src - 0.5) * p1.y + 0.5;
-            c = gain * (c + lift * (1.0 - c));
-            c = pow(clamp(c, 0.0, 1.0), 1.0 / gam);
-            float l = dot(c, vec3(0.299, 0.587, 0.114));
-            c += shd * (1.0 - l) * (1.0 - l) + hig * l * l;
-            l = dot(c, vec3(0.299, 0.587, 0.114));
-            c = mix(vec3(l), c, p1.x);
-            c = mix(c, vec3(l), p1.w);
-            c = c * (1.0 - p1.z) + p1.z * 0.12;
-            c = mix(src, c, p2.x);
-            vec2 dc = destCoord();
-            vec2 scr = vec2(dc.x / size.x, 1.0 - dc.y / size.y);
-            float asp = size.y / size.x;
-            vec2 d = (scr - 0.5) * vec2(1.0, asp);
-            float vg = smoothstep(0.42, 1.05, length(d) / max(1.0, asp * 0.62));
-            c *= 1.0 - p2.z * vg;
-            vec2 q = floor(scr * vec2(540.0, 960.0)) + fract(time * 7.0) * 113.0;
-            q = fract(q * vec2(123.34, 456.21));
-            q += dot(q, q + 45.32);
-            float n = fract(q.x * q.y) - 0.5;
-            float lum = dot(c, vec3(0.299, 0.587, 0.114));
-            c += n * p2.y * 0.32 * (1.15 - lum);
-            float bar = step(scr.y, p2.w) + step(1.0 - p2.w, scr.y);
-            c = mix(c, vec3(0.0), clamp(bar, 0.0, 1.0) * step(0.001, p2.w));
-            return vec4(clamp(c, 0.0, 1.0), 1.0);
-        }
-        """
-        return CIColorKernel(source: src)
+float fhash(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+vec3 tap(sampler s, vec2 size, vec2 u){ return sample(s, samplerTransform(s, u * size)).rgb; }
+kernel vec4 fluxGrade(sampler img, vec3 lift, vec3 gam, vec3 gain, vec3 shd, vec3 hig, vec4 p1, vec4 p2, vec4 p3, vec2 size, float time) {
+  vec2 dc = destCoord(); vec2 vScr = vec2(dc.x / size.x, 1.0 - dc.y / size.y); vec2 u = dc / size; float uAspect = size.y / size.x;
+  float w = clamp(1.0 - abs(p3.y) / 0.22, 0.0, 1.0); w = w * w * (3.0 - 2.0 * w);
+  if (p3.x < 0.5) w = 0.0;
+  vec3 src;
+  if (w > 0.001 && p3.x < 1.5) {
+    vec2 c0 = (u - 0.5) / (1.0 + 0.22 * w) + 0.5; vec2 dir = (c0 - 0.5) * 0.07 * w;
+    src = (tap(img, size, c0) + tap(img, size, c0 - dir) + tap(img, size, c0 - 2.0 * dir) + tap(img, size, c0 + dir)) * 0.25;
+  } else if (w > 0.001 && p3.x < 2.5) {
+    float sg = p3.y < 0.0 ? 1.0 : -1.0; vec2 c0 = u + vec2(sg * 0.3 * w * w, 0.0); vec3 acc = vec3(0.0);
+    for (int i = 0; i < 10; i++) { float f = float(i) / 9.0 - 0.5; acc += tap(img, size, c0 + vec2(f * 0.2 * w, 0.0)); }
+    src = acc / 10.0;
+  } else if (w > 0.001 && p3.x < 3.5) {
+    float fr = floor(time * 24.0), row = floor(u.y * 28.0);
+    float jt = (fhash(vec2(row, fr)) - 0.5) * 0.14 * w * step(0.5, fhash(vec2(row * 1.7, fr + 3.0)));
+    vec2 c0 = u + vec2(jt, 0.0); float o = 0.025 * w;
+    src = vec3(tap(img, size, c0 + vec2(o, 0.0)).r, tap(img, size, c0).g, tap(img, size, c0 - vec2(o, 0.0)).b);
+  } else if (w > 0.001 && p3.x < 4.5) {
+    vec2 off = vec2(sin(time * 83.0), cos(time * 97.0)) * 0.025 * w;
+    src = tap(img, size, (u - 0.5) / (1.0 + 0.07 * w) + 0.5 + off);
+  } else src = tap(img, size, u);
+  if (p3.z > 2.5 && p3.z < 3.5) { float o2 = 0.0035 * p3.w; src = vec3(tap(img, size, u + vec2(o2, 0.0)).r, src.g, tap(img, size, u - vec2(o2, 0.0)).b); }
+  vec3 c = (src - 0.5) * p1.y + 0.5;
+  c = gain * (c + lift * (1.0 - c));
+  c = pow(clamp(c, 0.0, 1.0), 1.0 / gam);
+  float l = dot(c, vec3(0.299, 0.587, 0.114));
+  c += shd * (1.0 - l) * (1.0 - l) + hig * l * l;
+  l = dot(c, vec3(0.299, 0.587, 0.114));
+  c = mix(vec3(l), c, p1.x);
+  c = mix(c, vec3(l), p1.w);
+  c = c * (1.0 - p1.z) + p1.z * 0.12;
+  c = mix(src, c, p2.x);
+  vec2 d = (vScr - 0.5) * vec2(1.0, uAspect);
+  float vg = smoothstep(0.42, 1.05, length(d) / max(1.0, uAspect * 0.62));
+  c *= 1.0 - p2.z * vg;
+  float fr2 = floor(time * 24.0);
+  if (p3.z > 0.5 && p3.z < 1.5) {
+    float tt = time * 0.35;
+    float la = exp(-pow((vScr.x - 0.12 - 0.22 * sin(tt)) * 3.0, 2.0) - pow((vScr.y - 0.22) * 2.2, 2.0));
+    float lb = exp(-pow((vScr.x - 0.9 - 0.1 * cos(tt * 1.3)) * 2.5, 2.0) - pow((vScr.y - 0.75 - 0.15 * sin(tt * 0.7)) * 2.0, 2.0));
+    vec3 lk = clamp(vec3(1.0, 0.45, 0.15) * la * 0.9 + vec3(1.0, 0.75, 0.35) * lb * 0.6, 0.0, 1.0) * p3.w;
+    c = 1.0 - (1.0 - c) * (1.0 - lk);
+  } else if (p3.z > 1.5 && p3.z < 2.5) {
+    float speck = step(0.9986, fhash(floor(vScr * vec2(180.0, 320.0)) + fr2 * 7.13));
+    float sx = fhash(vec2(fr2, 3.1));
+    float scr = step(abs(vScr.x - sx), 0.0012) * step(0.6, fhash(vec2(fr2, 9.2)));
+    c = mix(c, vec3(0.95, 0.93, 0.88), clamp(speck * 0.85 + scr * 0.4, 0.0, 1.0) * p3.w);
+    c *= 1.0 - 0.07 * p3.w * fhash(vec2(fr2, 1.0));
+  } else if (p3.z > 2.5 && p3.z < 3.5) {
+    c *= 1.0 - 0.13 * p3.w * (sin(vScr.y * 1500.0) * 0.5 + 0.5);
+    float band = 1.0 - smoothstep(0.0, 0.025, abs(fract(vScr.y * 0.7 - time * 0.12) - 0.5));
+    c += band * 0.08 * p3.w * (fhash(vec2(floor(vScr.x * 300.0), fr2)) - 0.3);
+    c = mix(c, c * vec3(1.04, 0.97, 1.07), p3.w);
+  }
+  float n = fhash(floor(vScr * vec2(540.0, 960.0)) + fract(time * 7.0) * 113.0) - 0.5;
+  float lum = dot(c, vec3(0.299, 0.587, 0.114));
+  c += n * p2.y * 0.32 * (1.15 - lum);
+  if (p3.x > 4.5 && p3.x < 5.5) {
+    float x = vScr.x + vScr.y * 0.4, pos = 0.7 - p3.y * 3.0;
+    c += (vec3(1.0, 0.55, 0.22) * 1.3 * exp(-pow((x - pos) * 2.2, 2.0)) + vec3(1.0, 0.8, 0.5) * 0.25) * w;
+  }
+  if (p3.x > 5.5) c *= 1.0 - w;
+  if (p2.w > 0.001 && (vScr.y < p2.w || vScr.y > 1.0 - p2.w)) c = vec3(0.0);
+  return vec4(clamp(c, 0.0, 1.0), 1.0);
+}
+"""
+        return CIKernel(source: src)
     }()
 
     static func vec3(_ g: [String: Any], _ k: String, _ d: CGFloat) -> CIVector {
@@ -47,14 +86,16 @@ enum CineGrade {
         return CIVector(x: a.count > 0 ? a[0] : d, y: a.count > 1 ? a[1] : d, z: a.count > 2 ? a[2] : d)
     }
 
-    static func apply(_ img: CIImage, _ g: [String: Any], size: CGSize, time: Double) -> CIImage {
+    static func apply(_ img: CIImage, _ g: [String: Any], size: CGSize, time: Double, trans: Int, td: Double) -> CIImage {
         guard let k = kernel else { return img }
+        let ext = img.extent
         func f(_ key: String, _ d: Double) -> CGFloat { CGFloat((g[key] as? NSNumber)?.doubleValue ?? d) }
-        let args: [Any] = [img, vec3(g, "lift", 0), vec3(g, "gamma", 1), vec3(g, "gain", 1), vec3(g, "shadow", 0), vec3(g, "high", 0),
+        let args: [Any] = [img.clampedToExtent(), vec3(g, "lift", 0), vec3(g, "gamma", 1), vec3(g, "gain", 1), vec3(g, "shadow", 0), vec3(g, "high", 0),
                            CIVector(x: f("sat", 1), y: f("contrast", 1), z: f("fade", 0), w: f("mono", 0)),
                            CIVector(x: f("amount", 0), y: f("grain", 0), z: f("vignette", 0), w: f("bars", 0)),
+                           CIVector(x: CGFloat(trans), y: CGFloat(td), z: f("fx", 0), w: f("fxAmt", 0.7)),
                            CIVector(x: size.width, y: size.height), NSNumber(value: time.truncatingRemainder(dividingBy: 1000))]
-        return k.apply(extent: img.extent, arguments: args) ?? img
+        return k.apply(extent: ext, roiCallback: { _, _ in ext }, arguments: args)?.cropped(to: ext) ?? img
     }
 }
 
@@ -130,7 +171,12 @@ final class CineCompositor: NSObject, AVVideoCompositing {
                     v = v.transformed(by: CGAffineTransform(translationX: (W - v.extent.width) / 2, y: (H - v.extent.height) / 2))
                     img = v.cropped(to: CGRect(x: 0, y: 0, width: W, height: H)).composited(over: img)
                 }
-                if let g = job.spec.grade { img = CineGrade.apply(img, g, size: CGSize(width: W, height: H), time: t) }
+                if let g = job.spec.grade {
+                    var best = 9.0, bi = -1
+                    for (i, b) in job.spec.boundaries.enumerated() where abs(t - b) < abs(best) { best = t - b; bi = i }
+                    let code = bi >= 0 && bi < job.spec.transCodes.count ? job.spec.transCodes[bi] : 0
+                    img = CineGrade.apply(img, g, size: CGSize(width: W, height: H), time: t, trans: code, td: best)
+                }
                 if let ov = job.renderer.frame(t) { img = CIImage(cgImage: ov).composited(over: img) }
                 self.ci.render(img, to: out, bounds: CGRect(x: 0, y: 0, width: W, height: H), colorSpace: nil)
                 req.finish(withComposedVideoFrame: out)

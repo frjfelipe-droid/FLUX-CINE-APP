@@ -35,6 +35,7 @@ final class CineSpec {
     Typeface labelFont;
     double total;
     double[] boundaries = new double[0];
+    boolean flash = true;
     final List<Chunk> chunks = new ArrayList<>();
     List<TitleLayer> layers = new ArrayList<>();
     double titleEnd = 0, finalStart = -1;
@@ -89,6 +90,7 @@ final class CineSpec {
         double t = 0;
         for (int i = 0; i < segs.length(); i++) t += segDuration(segs.getJSONObject(i));
         s.total = t;
+        s.flash = !o.has("transition") || "flash".equals(o.optString("transition"));
         JSONArray b = o.optJSONArray("boundaries");
         if (b != null) {
             s.boundaries = new double[b.length()];

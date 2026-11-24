@@ -76,7 +76,7 @@ final class CineRenderer {
     private static double outBack(double a) { double c = 1.7; a -= 1; return 1 + a * a * ((c + 1) * a + c); }
 
     private void draw(Canvas c, double t, int ci) {
-        for (double b : s.boundaries) {
+        if (s.flash) for (double b : s.boundaries) {
             double d = t - b;
             if (d > -0.06 && d < 0.2) {
                 double a = d < 0 ? (d + 0.06) / 0.06 : 1 - d / 0.2;

@@ -33,21 +33,36 @@
     ['empilhado', 'Empilhado', 'palavras em blocos', { c: '#FFFFFF', a: '#FF7A1A' }, 'Empilhado Fogo', { c: '#FFD21F', a: '#FF3B30' }],
     ['revista', 'Revista', 'capa editorial', { c: '#FFFFFF', a: '#FF7A1A' }, 'Revista Noir', { c: '#FFFFFF', a: '#9A9A9A' }],
     ['assinatura', 'Assinatura', 'caligrafia de autor', { c: '#FFFFFF', a: '#FFD21F' }, 'Assinatura Rosé', { c: '#FFC6D9', a: '#FFFFFF' }],
-    ['impacto', 'Impacto', 'gigante e direto', { c: '#FFFFFF', a: '#FF3B30' }, 'Impacto Azul', { c: '#FFFFFF', a: '#2D7BFF' }]
+    ['impacto', 'Impacto', 'gigante e direto', { c: '#FFFFFF', a: '#FF3B30' }, 'Impacto Azul', { c: '#FFFFFF', a: '#2D7BFF' }],
+    ['capitulo', 'Capítulo', 'abertura de série', { c: '#F4EFE6', a: '#C9A86A' }, 'Capítulo Âmbar', { c: '#FFD9A0', a: '#FFFFFF' }],
+    ['eco', 'Eco', 'título que ecoa', { c: '#FFFFFF', a: '#FF7A1A' }, 'Eco Lima', { c: '#D4FF3A', a: '#FFFFFF' }],
+    ['manchete', 'Manchete', 'jornal de época', { c: '#F4EFE6', a: '#E5341D' }, 'Manchete Noir', { c: '#FFFFFF', a: '#FFD21F' }],
+    ['gravando', 'Gravando', 'câmera VHS ao vivo', { c: '#FFFFFF', a: '#FF3B30' }, 'Gravando Laranja', { c: '#FFB547', a: '#FF3B30' }],
+    ['cartaz', 'Cartaz', 'pôster esportivo', { c: '#FFFFFF', a: '#FF5A1F' }, 'Cartaz Turquesa', { c: '#FFFFFF', a: '#16C7B7' }],
+    ['luxo', 'Luxo', 'marca de alto padrão', { c: '#E9D6A7', a: '#E9D6A7' }, 'Luxo Pérola', { c: '#F5F2EC', a: '#BFB7A8' }],
+    ['letreiro', 'Letreiro Neon', 'neon escrito à mão', { c: '#FF7AD9', a: '#FFFFFF' }, 'Letreiro Azul', { c: '#6FD8FF', a: '#FFFFFF' }],
+    ['entrevista', 'Entrevista', 'nome na tela, estilo documentário', { c: '#FFFFFF', a: '#FF7A1A' }, 'Entrevista Lima', { c: '#FFFFFF', a: '#C6FF3D' }]
   ];
+  var CATS = { paraiso: 'cinema', chamada: 'cinema', tudo: 'cinema', classico: 'cinema', capitulo: 'cinema', luxo: 'cinema', alem: 'cinema', paladar: 'cinema',
+    impacto: 'viral', empilhado: 'viral', insano: 'viral', caixa: 'viral', cartaz: 'viral', eco: 'viral', domingo: 'viral',
+    verao: 'lifestyle', vlog: 'lifestyle', escape: 'lifestyle', camp: 'lifestyle', assinatura: 'lifestyle', marcador: 'lifestyle', letreiro: 'lifestyle',
+    retro: 'retro', maquina: 'retro', gravando: 'retro', manchete: 'retro', revista: 'retro',
+    glitch: 'tech', neon: 'tech', minimal: 'tech', entrevista: 'tech' };
   var DEMO = {
     paraiso: ['Even the sun sets', 'paradise'], verao: ['The art summertime', 'of'], domingo: ['Sunday', 'Service'], alem: ['Beyond', 'um experimento visual sobre horizontes'],
     vlog: ['Canada Vlog', 'world tour · episódio 3'], chamada: ['The Last Call', 'uma experiência cinematográfica'], marcador: ['Nothing ever does', 'um filme'], tudo: ['everything goes.', 'certamente, um dia vai passar'],
     classico: ['Cinematic', 'Simples, mas marcante'], camp: ['Midyear', 'Camp'], escape: ['One Day', 'escape'], insano: ['Insane', 'Novo lançamento'],
     paladar: ['Taste', 'Uma experiência'], retro: ['Merman', 'Um curta original'], neon: ['Noite', 'aberto até tarde'], minimal: ['Essencial', 'menos é mais'],
     caixa: ['Promoção', 'só esta semana'], glitch: ['Reset', 'nova fase'], maquina: ['Você sabia?', 'o segredo é simples'], empilhado: ['Pare de errar', 'veja isso'],
-    revista: ['Estilo', 'a edição de hoje'], assinatura: ['Com amor', 'feito à mão'], impacto: ['Atenção', 'leia isso']
+    revista: ['Estilo', 'a edição de hoje'], assinatura: ['Com amor', 'feito à mão'], impacto: ['Atenção', 'leia isso'],
+    capitulo: ['O começo', 'capítulo um'], eco: ['Agora', 'não depois'], manchete: ['Tudo mudou', 'edição extra'], gravando: ['Bastidores', 'gravado hoje'],
+    cartaz: ['Sem limites', 'temporada nova'], luxo: ['Maison', 'coleção privada'], letreiro: ['Good vibes', 'aberto agora'], entrevista: ['Ana Souza', 'fundadora · Sua Marca']
   };
   var MODELS = [];
   DEFS.forEach(function (d, i) {
     var dm = DEMO[d[0]];
-    MODELS.push({ id: d[0] + '-1', fam: d[0], name: d[1], vibe: d[2], P: d[3], accent: d[3].a && d[0] !== 'caixa' ? d[3].a : d[3].c, media: VIDS[i % 6], demo: { title: dm[0], sub: dm[1], brand: 'Sua Marca' } });
-    MODELS.push({ id: d[0] + '-2', fam: d[0], name: d[4], vibe: d[2], P: d[5], accent: d[5].a && d[0] !== 'caixa' ? d[5].a : d[5].c, media: VIDS[(i + 3) % 6], vip: i >= 3, demo: { title: dm[0], sub: dm[1], brand: 'Sua Marca' } });
+    MODELS.push({ id: d[0] + '-1', fam: d[0], cat: CATS[d[0]] || 'cinema', isNew: i >= 23, name: d[1], vibe: d[2], P: d[3], accent: d[3].a && d[0] !== 'caixa' ? d[3].a : d[3].c, media: VIDS[i % 6], demo: { title: dm[0], sub: dm[1], brand: 'Sua Marca' } });
+    MODELS.push({ id: d[0] + '-2', fam: d[0], cat: CATS[d[0]] || 'cinema', isNew: i >= 23, name: d[4], vibe: d[2], P: d[5], accent: d[5].a && d[0] !== 'caixa' ? d[5].a : d[5].c, media: VIDS[(i + 3) % 6], vip: i >= 3, demo: { title: dm[0], sub: dm[1], brand: 'Sua Marca' } });
   });
 
   var mctx = document.createElement('canvas').getContext('2d');
@@ -329,6 +344,103 @@
         L.push({ type: 'box', x: 90, y: y + 34, w: 900, h: 16, color: AC, r: 4, anim: A('wipe', 0.45, 0.4) });
         if (sub) L.push(T({ text: up(sub), font: 'ArchivoBlack-400', size: fit(up(sub), 'ArchivoBlack-400', 880, 54), x: 540, y: y + 120, color: C, anim: A('rise', 0.55, 0.5) }));
         break;
+      case 'capitulo': {
+        L.push({ type: 'dim', alpha: 0.42, anim: A('fade', 0, 0.6) });
+        y = 1000; s = fit(cap(title), 'PlayfairDisplay-600i', 960, 200, 1, -0.01);
+        L.push(T({ text: 'CAPÍTULO 01', font: 'Inter-700', size: 26, x: 540, y: y - s - 70, color: AC, ls: 0.6, anim: A('track', 0.2, 1.0) }));
+        L.push({ type: 'line', x1: 500, y1: y - s - 30, x2: 580, y2: y - s - 30, w: 2, color: AC, anim: A('draw', 0.5, 0.6) });
+        L.push(T({ text: cap(title), font: 'PlayfairDisplay-600i', size: s, x: 540, y: y, color: C, ls: -0.01, anim: A('blur', 0.15, 1.1) }));
+        if (sub) L.push(T({ text: up(sub), font: 'Inter-400', size: fit(up(sub), 'Inter-400', 800, 28, 1, 0.4), x: 540, y: y + 90, color: C, ls: 0.4, anim: A('fade', 0.9, 0.7) }));
+        L.push(T({ text: up(brand) + '  ·  ' + YEAR, font: 'Inter-400', size: 22, x: 540, y: 1760, color: C, ls: 0.3, anim: A('fade', 1.0, 0.6) }));
+        break;
+      }
+      case 'eco': {
+        L.push({ type: 'dim', alpha: 0.3, anim: A('fade', 0, 0.3) });
+        s = fit(up(title), 'Anton-400', 1000, 300, 1, -0.01); y = 1000;
+        [-3, -2, -1, 1, 2, 3].forEach(function (k) {
+          L.push(T({ text: up(title), font: 'Anton-400', size: s, x: 540, y: y + k * s * 0.82, color: C, ls: -0.01, alpha: 0.55 - Math.abs(k) * 0.15, anim: A('rise', 0.05 + Math.abs(k) * 0.07, 0.5) }));
+        });
+        L.push(T({ text: up(title), font: 'Anton-400', size: s, x: 540, y: y, color: AC, ls: -0.01, anim: A('zoom', 0, 0.55) }));
+        if (sub) L.push(T({ text: up(sub), font: 'Inter-700', size: fit(up(sub), 'Inter-700', 800, 34, 1, 0.3), x: 540, y: y + s * 3.1, color: C, ls: 0.3, anim: A('fade', 0.6, 0.5) }));
+        break;
+      }
+      case 'manchete': {
+        L.push({ type: 'dim', alpha: 0.45, anim: A('fade', 0, 0.4) });
+        y = 980;
+        L.push({ type: 'line', x1: 70, y1: 560, x2: 1010, y2: 560, w: 5, color: C, anim: A('draw', 0.05, 0.6) });
+        L.push({ type: 'line', x1: 70, y1: 574, x2: 1010, y2: 574, w: 2, color: C, anim: A('draw', 0.1, 0.6) });
+        L.push(T({ text: 'O DIÁRIO ' + up(brand), font: 'BodoniModa-900', size: fit('O DIÁRIO ' + up(brand), 'BodoniModa-900', 940, 74), x: 540, y: 530, color: C, anim: A('fade', 0.15, 0.5) }));
+        L.push(T({ text: up(sub || 'edição extra'), font: 'Inter-700', size: 24, x: 70, y: 620, align: 'left', color: AC, ls: 0.25, anim: A('fade', 0.3, 0.5) }));
+        L.push(T({ text: DATE, font: 'Inter-700', size: 24, x: 1010, y: 620, align: 'right', color: C, ls: 0.15, anim: A('fade', 0.3, 0.5) }));
+        var hw = up(title).split(/\s+/).filter(Boolean), hh = Math.ceil(hw.length / 2), h1 = hw.slice(0, hh).join(' '), h2 = hw.slice(hh).join(' ');
+        var hs = Math.min(fit(h1, 'PlayfairDisplay-900', 940, 260, 0.78), h2 ? fit(h2, 'PlayfairDisplay-900', 940, 260, 0.78) : 999);
+        L.push(T({ text: h1, font: 'PlayfairDisplay-900', size: hs, x: 540, y: 640 + hs, color: C, sx: 0.78, anim: A('stretch', 0.35, 0.7) }));
+        if (h2) L.push(T({ text: h2, font: 'PlayfairDisplay-900', size: hs, x: 540, y: 640 + hs * 1.95, color: C, sx: 0.78, anim: A('stretch', 0.5, 0.7) }));
+        var yl = 640 + hs * (h2 ? 1.95 : 1) + 50;
+        L.push({ type: 'line', x1: 70, y1: yl, x2: 1010, y2: yl, w: 2, color: C, anim: A('draw', 0.7, 0.6) });
+        L.push(T({ text: 'PÁGINA 1  ·  PREÇO: SUA ATENÇÃO', font: 'Inter-400', size: 20, x: 540, y: yl + 40, color: C, ls: 0.2, anim: A('fade', 0.9, 0.5) }));
+        break;
+      }
+      case 'gravando': {
+        L.push({ type: 'dim', alpha: 0.12, anim: A('fade', 0, 0.3) });
+        [[60, 120, 160, 120], [60, 120, 60, 220], [1020, 120, 920, 120], [1020, 120, 1020, 220], [60, 1800, 160, 1800], [60, 1700, 60, 1800], [1020, 1800, 920, 1800], [1020, 1700, 1020, 1800]].forEach(function (q, k) {
+          L.push({ type: 'line', x1: q[0], y1: q[1], x2: q[2], y2: q[3], w: 5, color: C, anim: A('fade', 0.05 + k * 0.02, 0.3) });
+        });
+        L.push({ type: 'box', x: 100, y: 170, w: 34, h: 34, r: 17, color: AC, anim: A('flicker', 0.1, 2.5) });
+        L.push(T({ text: 'REC', font: 'SpaceMono-700', size: 40, x: 150, y: 202, align: 'left', color: C, anim: A('fade', 0.1, 0.3) }));
+        L.push(T({ text: '00:00:03:12', font: 'SpaceMono-700', size: 34, x: 980, y: 202, align: 'right', color: C, anim: A('fade', 0.15, 0.3) }));
+        s = fit(up(title), 'SpaceMono-700', 920, 120); y = 980;
+        L.push(T({ text: up(title), font: 'SpaceMono-700', size: s, x: 540, y: y, color: C, shadow: { dx: 4, dy: 4, color: 'rgba(0,0,0,.6)', sw: 0 }, anim: A('type', 0.3, 0.9) }));
+        if (sub) L.push(T({ text: '> ' + up(sub), font: 'SpaceMono-700', size: fit('> ' + up(sub), 'SpaceMono-700', 860, 36), x: 540, y: y + 80, color: C, anim: A('fade', 1.1, 0.4) }));
+        L.push(T({ text: DATE.replace(/\./g, ' ') , font: 'SpaceMono-700', size: 44, x: 980, y: 1760, align: 'right', color: '#FFA53A', shadow: { dx: 0, dy: 0, color: 'rgba(255,120,0,.5)', sw: 3 }, anim: A('fade', 0.2, 0.4) }));
+        L.push(T({ text: 'SP  ' + up(brand), font: 'SpaceMono-700', size: 30, x: 100, y: 1760, align: 'left', color: C, anim: A('fade', 0.25, 0.4) }));
+        break;
+      }
+      case 'cartaz': {
+        L.push({ type: 'dim', alpha: 0.28, anim: A('fade', 0, 0.3) });
+        var cw2 = up(title).split(/\s+/).filter(Boolean), c1 = cw2.slice(0, Math.max(1, cw2.length - 1)).join(' '), c2 = cw2.length > 1 ? cw2[cw2.length - 1] : '';
+        var cs1 = fit(c1, 'Unbounded-800', 960, 170, 1, -0.02); y = 940;
+        L.push(T({ text: c1, font: 'Unbounded-800', size: cs1, x: 540, y: y, color: C, ls: -0.02, anim: A('slideL', 0.05, 0.5) }));
+        if (c2) {
+          var cs2 = fit(c2, 'Unbounded-800', 860, 200, 1, -0.02), c2w = width(c2, 'Unbounded-800', cs2) * 0.98;
+          L.push({ type: 'box', x: 540 - c2w / 2 - 34, y: y + 40, w: c2w + 68, h: cs2 * 1.12, color: AC, r: 6, anim: A('wipe', 0.3, 0.4) });
+          L.push(T({ text: c2, font: 'Unbounded-800', size: cs2, x: 540, y: y + 40 + cs2 * 0.92, color: '#FFFFFF', ls: -0.02, anim: A('pop', 0.45, 0.5) }));
+        }
+        if (sub) L.push(T({ text: up(sub), font: 'Oswald-700', size: fit(up(sub), 'Oswald-700', 800, 46, 1, 0.2), x: 540, y: y - cs1 - 30, color: AC, ls: 0.2, anim: A('fade', 0.5, 0.5) }));
+        L.push(T({ text: '#' + up(brand).replace(/\s+/g, ''), font: 'Oswald-700', size: 36, x: 540, y: 1700, color: C, ls: 0.15, anim: A('fade', 0.8, 0.5) }));
+        break;
+      }
+      case 'luxo': {
+        L.push({ type: 'vignette', alpha: 0.9, anim: A('fade', 0, 0.8) });
+        L.push({ type: 'dim', alpha: 0.25, anim: A('fade', 0, 0.8) });
+        y = 1000; s = fit(up(title), 'BodoniModa-900', 900, 130, 1, 0.35);
+        L.push({ type: 'oval', cx: 540, cy: y - s - 150, rx: 62, ry: 62, w: 2, color: C, anim: A('fade', 0.2, 0.9) });
+        L.push(T({ text: up(brand).charAt(0), font: 'BodoniModa-900', size: 70, x: 540, y: y - s - 126, color: C, anim: A('blur', 0.25, 0.9) }));
+        L.push(T({ text: up(title), font: 'BodoniModa-900', size: s, x: 540, y: y, color: C, ls: 0.35, anim: A('track', 0.2, 1.4) }));
+        L.push({ type: 'line', x1: 380, y1: y + 50, x2: 700, y2: y + 50, w: 1.5, color: AC, anim: A('draw', 0.9, 0.9) });
+        if (sub) L.push(T({ text: up(sub), font: 'CormorantGaramond-600i', size: fit(sub, 'CormorantGaramond-600i', 800, 44), x: 540, y: y + 112, color: C, ls: 0.1, anim: A('fade', 1.1, 0.8) }));
+        L.push(T({ text: 'EST. ' + YEAR, font: 'Inter-400', size: 20, x: 540, y: 1780, color: C, ls: 0.6, anim: A('fade', 1.2, 0.8) }));
+        break;
+      }
+      case 'letreiro': {
+        L.push({ type: 'dim', alpha: 0.5, anim: A('fade', 0, 0.4) });
+        s = fit(cap(title), 'Yellowtail-400', 960, 250); y = 1000;
+        L.push(T({ text: cap(title), font: 'Yellowtail-400', size: s, x: 540, y: y, color: '#FFFFFF', glow: C, shadow: { dx: 0, dy: 0, color: C, sw: Math.max(3, s * 0.03) }, rot: -4, anim: A('flicker', 0.1, 1.2) }));
+        if (sub) L.push(T({ text: up(sub), font: 'Unbounded-800', size: fit(up(sub), 'Unbounded-800', 760, 40, 1, 0.25), x: 540, y: y + 120, color: AC, ls: 0.25, glow: C, anim: A('flicker', 0.7, 0.8) }));
+        L.push(T({ text: up(brand), font: 'Inter-700', size: 24, x: 540, y: y - s * 0.95, color: C, ls: 0.5, anim: A('fade', 0.9, 0.6) }));
+        break;
+      }
+      case 'entrevista': {
+        var nm = title, role = sub || brand;
+        s = fit(nm, 'Montserrat-800', 760, 74); var rs = fit(up(role), 'Inter-700', 700, 30, 1, 0.12);
+        var nw = Math.max(width(nm, 'Montserrat-800', s), width(up(role), 'Inter-700', rs) * 1.12) + 70; y = 1480;
+        L.push({ type: 'box', x: 70, y: y - s * 1.05, w: 12, h: s * 1.05 + rs * 2.2, color: AC, r: 2, anim: A('fade', 0, 0.25) });
+        L.push({ type: 'box', x: 82, y: y - s * 1.05, w: nw, h: s * 1.3, color: 'rgba(10,10,12,0.82)', r: 0, anim: A('wipe', 0.05, 0.45) });
+        L.push(T({ text: nm, font: 'Montserrat-800', size: s, x: 112, y: y, align: 'left', color: C, anim: A('slideL', 0.25, 0.45) }));
+        L.push({ type: 'box', x: 82, y: y + s * 0.25, w: nw * 0.8, h: rs * 1.9, color: AC, r: 0, anim: A('wipe', 0.35, 0.45) });
+        L.push(T({ text: up(role), font: 'Inter-700', size: rs, x: 112, y: y + s * 0.25 + rs * 1.32, align: 'left', color: '#0A0A0A', ls: 0.12, anim: A('fade', 0.6, 0.3) }));
+        break;
+      }
     }
     return L;
   }
@@ -497,5 +609,5 @@
     return Promise.all(FAMS.map(function (f) { return document.fonts.load('40px "' + f + '"').catch(function () {}); }));
   }
 
-  root.FluxTitles = { MODELS: MODELS, layout: layout, draw: draw, drawCaption: drawCaption, CAP_DEFAULT: CAP_DEFAULT, loadFonts: loadFonts, W: W, H: H };
+  root.FluxTitles = { MODELS: MODELS, CATS: [['all', 'Todos'], ['new', 'Novos'], ['cinema', 'Cinema'], ['viral', 'Viral'], ['lifestyle', 'Lifestyle'], ['retro', 'Retrô'], ['tech', 'Moderno']], layout: layout, draw: draw, drawCaption: drawCaption, CAP_DEFAULT: CAP_DEFAULT, loadFonts: loadFonts, W: W, H: H };
 })(window);

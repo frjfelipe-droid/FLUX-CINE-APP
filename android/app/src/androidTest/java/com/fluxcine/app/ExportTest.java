@@ -108,7 +108,8 @@ public class ExportTest {
 
         // B — título Glitch, legenda Bangers com brilho e pulo, título movido para cima e menor
         JSONObject capGlow = new JSONObject(capBox.toString()).put("fontFile", "Bangers-400.ttf").put("upper", true).put("shadow", "glow").put("hl", "color").put("anim", "bounce").put("size", 1.25).put("ls", 0.04).put("y", 0.62).put("accent", "#00E5FF");
-        JSONObject b = new JSONObject(a.toString()).put("titleLayout", layouts.getJSONArray("vlog")).put("captionStyle", capGlow)
+        JSONObject b = new JSONObject(a.toString()).put("titleLayout", layouts.getJSONArray("cartaz"))
+                .put("grade", new JSONObject(layouts.getJSONObject("grade").toString()).put("fx", 3).put("fxAmt", 0.8)).put("captionStyle", capGlow)
                 .put("titleTf", new JSONObject().put("ox", 0).put("oy", -420).put("s", 0.8)).put("cta", "").put("ending", "fade").put("sfx", "whoosh");
         report.put("B", runExport(target, b, "B", new double[]{0.25, 0.6, 1.5, b.getDouble("titleEnd") + 0.6, pa.finalStart + 0.3, pa.total - 0.5}));
 
@@ -119,7 +120,8 @@ public class ExportTest {
         chips.add(new double[]{8.0, 8.07, 0.1});
         chips.add(new double[]{11.0, 11.9, 1.0});
         Plan pd = plan(in, words, chips, segs, 1);
-        JSONObject d = baseSpec(pd).put("titleLayout", layouts.getJSONArray("tudo")).put("titleEnd", Math.max(2.6, Math.min(6, pd.montage)))
+        JSONObject d = baseSpec(pd).put("titleLayout", layouts.getJSONArray("gravando"))
+                .put("grade", new JSONObject(layouts.getJSONObject("grade").toString()).put("amount", 0.4).put("bars", 0).put("fx", 2).put("fxAmt", 1)).put("titleEnd", Math.max(2.6, Math.min(6, pd.montage)))
                 .put("captionStyle", new JSONObject(capBox.toString()).put("fontFile", "Anton-400.ttf").put("upper", true).put("shadow", "hard").put("anim", "type"))
                 .put("cta", "").put("ending", "fade").put("sfx", "impact").put("quality", "hd");
         report.put("D", runExport(target, d, "D", new double[]{0.4, 1.3, 2.2, pd.montage - 0.3, pd.montage + 0.8, pd.finalStart + 0.3}));
@@ -183,7 +185,11 @@ public class ExportTest {
     }
 
     private static JSONObject baseSpec(Plan p) throws Exception {
-        return new JSONObject().put("segments", p.segments).put("captions", p.captions).put("boundaries", p.boundaries).put("finalStart", p.finalStart);
+        JSONArray codes = new JSONArray();
+        int[] mix = {1, 2, 3, 5, 4, 6};
+        for (int i = 0; i < p.boundaries.length(); i++) codes.put(mix[i % mix.length]);
+        return new JSONObject().put("segments", p.segments).put("captions", p.captions).put("boundaries", p.boundaries).put("finalStart", p.finalStart)
+                .put("transition", "mix").put("transCodes", codes);
     }
 
     private JSONObject runExport(Context ctx, JSONObject spec, String tag, double[] ts) throws Exception {

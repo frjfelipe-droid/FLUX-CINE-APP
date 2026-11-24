@@ -307,6 +307,8 @@ final class CineSpec {
     var capShadow = "outline", capHl = "box", capAnim = "pop"
     var capColor = UIColor.white, capAccent = parseColor("#FF7A1A")
     var grade: [String: Any]?
+    var transCodes: [Int] = []
+    var flash = true
     var sfx = "none"
 
     var ctaStart: Double { max(0.6, total - 3.2) }
@@ -329,6 +331,8 @@ final class CineSpec {
         if let tf = o["titleTf"] as? [String: Any] { tfX = CGFloat(d(tf["ox"], 0)); tfY = CGFloat(d(tf["oy"], 0)); tfS = CGFloat(d(tf["s"], 1)) }
         if (o["quality"] as? String) == "4k" { outW = 2160; outH = 3840 }
         grade = o["grade"] as? [String: Any]
+        transCodes = (o["transCodes"] as? [Any] ?? []).compactMap { ($0 as? NSNumber)?.intValue }
+        if let tr = o["transition"] as? String { flash = tr == "flash" }
         for g in (o["segments"] as? [[String: Any]] ?? []) {
             let st = Int(d(g["startMs"], 0)), en = max(st + 40, Int(d(g["endMs"], 0)))
             var sp = d(g["speed"], 1); if sp <= 0 { sp = 1 }
@@ -400,7 +404,7 @@ final class CineRenderer {
 
     private func draw(_ c: CGContext, _ t: Double, _ ci: Int) {
         let W = CineSpec.W, H = CineSpec.H
-        for b in s.boundaries {
+        for b in s.boundaries where s.flash {
             let d = t - b
             if d > -0.06 && d < 0.2 {
                 let a = d < 0 ? (d + 0.06) / 0.06 : 1 - d / 0.2

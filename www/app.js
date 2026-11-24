@@ -25,6 +25,21 @@
   var SHADOWS = [['outline', 'Contorno'], ['soft', 'Suave'], ['hard', 'Dura'], ['glow', 'Brilho'], ['none', 'Sem']];
   var HLS = [['box', 'Caixa'], ['color', 'Cor'], ['underline', 'Sublinhado'], ['none', 'Nenhum']];
   var ANIMS = [['pop', 'Pop'], ['bounce', 'Pulo'], ['fade', 'Surgir'], ['type', 'Palavra a palavra'], ['none', 'Fixo']];
+  /* modelos de legenda prontos: um toque aplica fonte, cor, destaque, sombra e efeito */
+  var CAP_PRESETS = [
+    { id: 'viral', name: 'Viral', cs: { font: 'Montserrat-800', upper: true, size: 1.05, ls: 0, shadow: 'outline', hl: 'box', anim: 'pop', y: 0.73, color: '#FFFFFF', accent: '#FFD21F' } },
+    { id: 'podcast', name: 'Podcast', cs: { font: 'Poppins-800', upper: false, size: 1, ls: 0, shadow: 'soft', hl: 'color', anim: 'pop', y: 0.72, color: '#FFFFFF', accent: '#D4FF3A' } },
+    { id: 'impacto', name: 'Impacto', cs: { font: 'Anton-400', upper: true, size: 1.3, ls: 0.01, shadow: 'outline', hl: 'color', anim: 'bounce', y: 0.7, color: '#FFFFFF', accent: '#FF3B30' } },
+    { id: 'gibi', name: 'Gibi', cs: { font: 'Bangers-400', upper: true, size: 1.2, ls: 0.03, shadow: 'hard', hl: 'color', anim: 'bounce', y: 0.72, color: '#FFFFFF', accent: '#FFD21F' } },
+    { id: 'neon', name: 'Neon', cs: { font: 'Unbounded-800', upper: true, size: 0.85, ls: 0.02, shadow: 'glow', hl: 'color', anim: 'fade', y: 0.74, color: '#FFFFFF', accent: '#FF4FD8' } },
+    { id: 'elegante', name: 'Elegante', cs: { font: 'PlayfairDisplay-600i', upper: false, size: 1.05, ls: 0, shadow: 'soft', hl: 'underline', anim: 'fade', y: 0.76, color: '#FFFFFF', accent: '#E9D6A7' } },
+    { id: 'cinema', name: 'Cinema', cs: { font: 'BebasNeue-400', upper: true, size: 1.15, ls: 0.08, shadow: 'soft', hl: 'none', anim: 'fade', y: 0.83, color: '#F4EFE6', accent: '#F4EFE6' } },
+    { id: 'minimal', name: 'Minimal', cs: { font: 'Inter-700', upper: false, size: 0.9, ls: -0.01, shadow: 'soft', hl: 'color', anim: 'fade', y: 0.75, color: '#FFFFFF', accent: '#FF7A1A' } },
+    { id: 'maquina', name: 'Máquina', cs: { font: 'SpaceMono-700', upper: false, size: 0.9, ls: 0, shadow: 'hard', hl: 'color', anim: 'type', y: 0.74, color: '#FFFFFF', accent: '#FF7A1A' } },
+    { id: 'caneta', name: 'Caneta', cs: { font: 'Caveat-700', upper: false, size: 1.25, ls: 0, shadow: 'soft', hl: 'color', anim: 'pop', y: 0.73, color: '#FFFFFF', accent: '#FFD21F' } },
+    { id: 'etiqueta', name: 'Etiqueta', cs: { font: 'ArchivoBlack-400', upper: true, size: 0.95, ls: 0, shadow: 'none', hl: 'box', anim: 'bounce', y: 0.7, color: '#FFFFFF', accent: '#FF7A1A' } },
+    { id: 'serie', name: 'Série', cs: { font: 'DMSerifDisplay-400', upper: false, size: 1.05, ls: 0, shadow: 'outline', hl: 'color', anim: 'pop', y: 0.74, color: '#FFFFFF', accent: '#FFB547' } }
+  ];
   var COLORS = ['#FFFFFF', '#FFD21F', '#FF7A1A', '#D4FF3A', '#4FD1FF', '#FF5FA2'];
   var SFX = [{ id: 'impact', name: 'Impacto' }, { id: 'whoosh', name: 'Whoosh' }, { id: 'riser', name: 'Riser' }, { id: 'glitch', name: 'Glitch' }, { id: 'pop', name: 'Pop' }];
   var CTAS = ['Chama no WhatsApp', 'Link na bio', 'Agende sua visita', 'Compre agora'];
@@ -54,8 +69,8 @@
     mode: 'cine', model: 'classico-1', dyn: 'viral', clip: null, chips: [], autoCut: true,
     title: '', sub: '', brand: store('flux_brand') || '', tf: { ox: 0, oy: 0, s: 1 },
     cs: clone(TT.CAP_DEFAULT), capsOn: true, sfxOn: true, sfx: 'impact', cta: '', quality: 'hd',
-    selCap: -1, styleTab: 'fonte', progress: 0, out: null, err: '', caption: '', tags: ['#empreendedorismo', '#reels', '#dicas'],
-    projects: [], viewing: null, filter: 'todos',
+    fx: { trans: 'mix', fx: 'none', amt: 0.7 }, selCap: -1, styleTab: 'modelos', capPreset: '', progress: 0, out: null, err: '', caption: '', tags: ['#empreendedorismo', '#reels', '#dicas'],
+    projects: [], viewing: null, filter: 'all',
     grade: { id: 'tealorange', amount: 0.8, grain: 0.3, vignette: 0.3, bars: false }, edTab: 'legenda', trimFillers: true, jumpZoom: true, moveMode: false
   };
   try { S.projects = JSON.parse(store('flux_projects') || '[]'); } catch (e) { S.projects = []; }
@@ -83,7 +98,7 @@
   function fmt1(sec) { return (Math.round(sec * 10) / 10).toFixed(1).replace('.', ',') + 's'; }
   var BLANK = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
   /* vídeo sem o quadro cinza: fica invisível até começar a tocar */
-  function media(id, extra) { return '<video class="mv" src="media/' + id + '.mp4" poster="' + BLANK + '" autoplay muted loop playsinline preload="auto" ' + (extra || '') + ' onplaying="this.style.opacity=1" onerror="this.remove()"></video>'; }
+  function media(id, extra, lazy) { return '<video class="mv" ' + (lazy ? 'data-src' : 'src') + '="media/' + id + '.mp4" poster="' + BLANK + '" ' + (lazy ? '' : 'autoplay ') + 'muted loop playsinline preload="' + (lazy ? 'none' : 'auto') + '" ' + (extra || '') + ' onplaying="this.style.opacity=1" onerror="this.remove()"></video>'; }
   function srcUrl(p) { return NATIVE ? CAP.convertFileSrc(p) : p; }
   function model() { return find(MODELS, S.model); }
 
@@ -93,7 +108,7 @@
     anims = [];
     if (io) io.disconnect();
     io = window.IntersectionObserver ? new IntersectionObserver(function (es) {
-      es.forEach(function (e) { var v = e.target.querySelector('video'); e.target.__vis = e.isIntersecting; if (v) { if (e.isIntersecting) safe(v.play()); else v.pause(); } });
+      es.forEach(function (e) { var v = e.target.querySelector('video'); e.target.__vis = e.isIntersecting; if (v) { if (e.isIntersecting) { var ds = v.getAttribute('data-src'); if (ds) { v.removeAttribute('data-src'); v.preload = 'auto'; v.src = ds; } safe(v.play()); } else v.pause(); } });
     }, { rootMargin: '80px' }) : null;
     var list = document.querySelectorAll('canvas[data-title]');
     for (var i = 0; i < list.length; i++) {
@@ -419,10 +434,11 @@
     if (!PL) return;
     var t = PL.t, tl = PL.tl, cv = PL.canvas, ctx = cv.getContext('2d');
     var g = tl.segs[PL.seg], v = g && PL.vids[g.path], zoom = (g && g.zoom || 1) * impactScale(t, tl.finalStart);
-    if (v) { if (PL.gr) PL.gr.draw(v, PL.grade, zoom, t); else v.style.transform = 'scale(' + zoom.toFixed(3) + ')'; }
+    var cst = FluxGrade.cutState(t, tl.boundaries, S.fx.trans);
+    if (v) { if (PL.gr) PL.gr.draw(v, PL.grade, zoom, t, { trans: cst.trans, td: cst.td, fx: FluxGrade.fxCode(S.fx.fx), amt: S.fx.amt }); else v.style.transform = 'scale(' + zoom.toFixed(3) + ')'; }
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
     ctx.setTransform(cv.width / TT.W, 0, 0, cv.height / TT.H, 0, 0);
-    for (var b = 0; b < tl.boundaries.length; b++) { var d = t - tl.boundaries[b]; if (d > -0.06 && d < 0.2) { ctx.fillStyle = 'rgba(255,255,255,' + (0.5 * (d < 0 ? (d + 0.06) / 0.06 : 1 - d / 0.2)).toFixed(2) + ')'; ctx.fillRect(0, 0, TT.W, TT.H); } }
+    if (S.fx.trans === 'flash') for (var b = 0; b < tl.boundaries.length; b++) { var d = t - tl.boundaries[b]; if (d > -0.06 && d < 0.2) { ctx.fillStyle = 'rgba(255,255,255,' + (0.5 * (d < 0 ? (d + 0.06) / 0.06 : 1 - d / 0.2)).toFixed(2) + ')'; ctx.fillRect(0, 0, TT.W, TT.H); } }
     if (t < tl.titleEnd + 0.02) TT.draw(ctx, PL.layers, t, tl.titleEnd, S.tf);
     if (S.capsOn) for (var i = 0; i < tl.captions.length; i++) { var cp = tl.captions[i]; if (t >= cp.s && t < cp.e + 0.1) { TT.drawCaption(ctx, cp, t, capStyle(), tl.finalStart >= 0 && cp.s >= tl.finalStart - 0.01); break; } }
     var tm = document.getElementById('pltime'); if (tm) tm.textContent = fmt1(t) + ' / ' + fmt1(tl.total);
@@ -490,14 +506,15 @@
       (i != null ? '<div class="steps">' + steps + '</div>' : '') + '</div>';
   }
   function modeTabs() { return '<div class="seg"><button class="' + (S.mode === 'cine' ? 'on' : '') + '" data-a="mode" data-v="cine">Cinemático<small>1 vídeo</small></button><button class="' + (S.mode === 'dyn' ? 'on' : '') + '" data-a="mode" data-v="dyn">Dinâmico<small>vários vídeos</small></button></div>'; }
+  function mfil(m, f) { return f === 'all' || (f === 'new' ? m.isNew : f === 'free' ? !m.vip : m.cat === f); }
   function models() {
-    var fams = [['todos', 'Todos (' + MODELS.length + ')'], ['free', 'Grátis'], ['vip', 'VIP']];
-    var chips = fams.map(function (f) { return '<button class="chip ' + (S.filter === f[0] ? 'on' : '') + '" data-a="mfilter" data-v="' + f[0] + '">' + f[1] + '</button>'; }).join('');
-    var list = MODELS.filter(function (m) { return S.filter === 'todos' || (S.filter === 'vip' ? m.vip : !m.vip); });
+    var fams = TT.CATS.concat([['free', 'Grátis']]);
+    var chips = fams.map(function (f) { var n = MODELS.filter(function (m) { return mfil(m, f[0]); }).length; return '<button class="chip ' + (S.filter === f[0] ? 'on' : '') + '" data-a="mfilter" data-v="' + f[0] + '">' + f[1] + ' <small>' + n + '</small></button>'; }).join('');
+    var list = MODELS.filter(function (m) { return mfil(m, S.filter); });
     var cards = list.map(function (m, i) {
       var sel = m.id === S.model;
       return '<button class="card ' + (sel ? 'sel' : '') + '" data-a="model" data-v="' + m.id + '" aria-pressed="' + sel + '"><div class="thumb" style="background:#111">' + media(m.media, 'preload="metadata"') + titleCanvas({ m: m.id, title: m.demo.title, sub: m.demo.sub, brand: m.demo.brand, end: 3.6, off: (i % 6) * 0.45, lazy: 1, tf: { ox: 0, oy: 0, s: 1 } }) +
-        (m.vip ? '<span class="viptag">VIP</span>' : '') + (sel ? '<div class="check" style="top:10px">' + ICON.check(14) + '</div>' : '') + '</div><span class="cname">' + (MODELS.indexOf(m) + 1) + '. ' + m.name + '</span><span class="cmeta">' + m.vibe + '</span></button>';
+        (m.vip ? '<span class="viptag">VIP</span>' : '') + (m.isNew ? '<span class="newtag">NOVO</span>' : '') + (sel ? '<div class="check" style="top:10px">' + ICON.check(14) + '</div>' : '') + '</div><span class="cname">' + (MODELS.indexOf(m) + 1) + '. ' + m.name + '</span><span class="cmeta">' + m.vibe + '</span></button>';
     }).join('');
     return modeTabs() + '<h1 style="margin-top:16px">' + MODELS.length + ' títulos cinematográficos</h1><p class="sub">Toque para ver a prévia. Depois você pode mover e ajustar o tamanho.</p><div class="chips" style="margin:14px -20px">' + chips + '</div><div class="grid">' + cards + '</div>' +
       '<div style="text-align:center;margin-top:16px"><button class="linkbtn" data-a="replay">Rever a apresentação</button></div>';
@@ -594,9 +611,10 @@
   }
   function stylePanel() {
     var cs = S.cs, tab = S.styleTab, h = '';
-    var tabs = [['fonte', 'Fonte'], ['tamanho', 'Tamanho'], ['espaco', 'Espaçamento'], ['sombra', 'Sombra'], ['efeito', 'Efeito'], ['destaque', 'Destaque'], ['cor', 'Cor'], ['posicao', 'Posição']];
+    var tabs = [['modelos', 'Modelos'], ['fonte', 'Fonte'], ['tamanho', 'Tamanho'], ['espaco', 'Espaçamento'], ['sombra', 'Sombra'], ['efeito', 'Efeito'], ['destaque', 'Destaque'], ['cor', 'Cor'], ['posicao', 'Posição']];
     var bar = '<div class="tabs">' + tabs.map(function (t) { return '<button class="' + (tab === t[0] ? 'on' : '') + '" data-a="stab" data-v="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>';
-    if (tab === 'fonte') h = '<div class="fonts" style="grid-template-columns:repeat(4,1fr)">' + CAP_FONTS.map(function (x) { return '<button class="font ' + (x.id === cs.font ? 'on' : '') + '" data-a="cfont" data-v="' + x.id + '"><span class="aa" style="font-family:\'' + x.id + '\'">Aa</span><small>' + x.label + '</small></button>'; }).join('') + '</div><button class="toggle ' + (cs.upper ? 'on' : '') + '" data-a="cupper"><span style="font-size:14px;font-weight:600">LETRAS MAIÚSCULAS</span><span class="sw"><i></i></span></button>';
+    if (tab === 'modelos') h = '<div class="cpresets">' + CAP_PRESETS.map(function (p) { var c = p.cs; return '<button class="cpre ' + (S.capPreset === p.id ? 'on' : '') + '" data-a="cpreset" data-v="' + p.id + '"><span class="cpw" style="font-family:\'' + c.font + '\';color:' + c.color + ';' + (c.shadow === 'glow' ? 'text-shadow:0 0 10px ' + c.accent : c.shadow === 'outline' ? '-webkit-text-stroke:1px #000;paint-order:stroke' : c.shadow === 'hard' ? 'text-shadow:2px 2px 0 #000' : 'text-shadow:0 2px 8px rgba(0,0,0,.6)') + '">' + (c.upper ? 'O ' : 'O ') + '<i style="font-style:normal;' + (c.hl === 'box' ? 'background:' + c.accent + ';color:#0A0A0A;padding:0 4px;border-radius:4px' : c.hl === 'underline' ? 'border-bottom:3px solid ' + c.accent : c.hl === 'color' ? 'color:' + c.accent : '') + '">' + (c.upper ? 'SEGREDO' : 'segredo') + '</i></span><small>' + p.name + '</small></button>'; }).join('') + '</div>';
+    else if (tab === 'fonte') h = '<div class="fonts" style="grid-template-columns:repeat(4,1fr)">' + CAP_FONTS.map(function (x) { return '<button class="font ' + (x.id === cs.font ? 'on' : '') + '" data-a="cfont" data-v="' + x.id + '"><span class="aa" style="font-family:\'' + x.id + '\'">Aa</span><small>' + x.label + '</small></button>'; }).join('') + '</div><button class="toggle ' + (cs.upper ? 'on' : '') + '" data-a="cupper"><span style="font-size:14px;font-weight:600">LETRAS MAIÚSCULAS</span><span class="sw"><i></i></span></button>';
     else if (tab === 'tamanho') h = '<div class="sizer"><span>Tamanho</span><input type="range" data-cs="size" min="60" max="160" value="' + Math.round(cs.size * 100) + '"><b>' + Math.round(cs.size * 100) + '%</b></div>';
     else if (tab === 'espaco') h = '<div class="sizer"><span>Entre letras</span><input type="range" data-cs="ls" min="-5" max="30" value="' + Math.round(cs.ls * 100) + '"><b>' + Math.round(cs.ls * 100) + '</b></div>';
     else if (tab === 'sombra') h = '<div class="chiprow">' + SHADOWS.map(function (x) { return '<button class="sug ' + (cs.shadow === x[0] ? 'on' : '') + '" data-a="cset" data-k="shadow" data-v="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>';
@@ -613,6 +631,15 @@
     return '<p class="hint" style="margin:0 0 10px">Coloração de cinema e granulação de filme. A prévia mostra exatamente como vai ficar.</p><div class="grades">' + cards + '</div>' +
       sl('amount', 'Intensidade') + sl('grain', 'Granulação') + sl('vignette', 'Vinheta') +
       '<button class="toggle ' + (g.bars ? 'on' : '') + '" data-a="gbars" style="margin-top:10px"><span class="col" style="gap:2px"><span style="font-size:14px;font-weight:600">Faixas de cinema</span><span class="hint">Barras pretas em cima e embaixo</span></span><span class="sw"><i></i></span></button>';
+  }
+  function fxPanel() {
+    var f = S.fx, TI = { none: '│', flash: '✦', zoom: '⊕', whip: '≫', glitch: '▚', shake: '≈', leak: '☀', dip: '◐', mix: '✱' };
+    var tr = FluxGrade.TRANS.map(function (x) { return '<button class="fxcard ' + (f.trans === x[0] ? 'on' : '') + '" data-a="ftrans" data-v="' + x[0] + '"><span class="fxi">' + TI[x[0]] + '</span><b>' + x[1] + '</b></button>'; }).join('');
+    var fx = FluxGrade.FX.map(function (x) { return '<button class="sug ' + (f.fx === x[0] ? 'on' : '') + '" data-a="ffx" data-v="' + x[0] + '">' + x[1] + '</button>'; }).join('');
+    var v = Math.round(f.amt * 100);
+    return '<h2 style="margin:4px 0 10px">Transição nos cortes</h2><div class="fxgrid">' + tr + '</div><p class="hint">Aparece em cada corte. Arraste a linha do tempo até um corte para ver.</p>' +
+      '<h2 style="margin:18px 0 10px">Efeito de filme</h2><div class="chiprow">' + fx + '</div>' +
+      '<div class="sizer" style="margin-top:10px"><span>Intensidade</span><input type="range" data-fx="amt" min="0" max="100" value="' + v + '"><b>' + v + '%</b></div>';
   }
   function cutsPanel() {
     function tg(a, on, t, d) { return '<button class="toggle ' + (on ? 'on' : '') + '" data-a="' + a + '"><span class="col" style="gap:2px"><span style="font-size:14px;font-weight:600">' + t + '</span><span class="hint">' + d + '</span></span><span class="sw"><i></i></span></button>'; }
@@ -631,6 +658,7 @@
   function edPanel() {
     if (S.edTab === 'color') return gradePanel();
     if (S.edTab === 'cortes') return cutsPanel();
+    if (S.edTab === 'efeitos') return fxPanel();
     if (S.edTab === 'som') return soundPanel();
     var tl = timeline();
     var pc = !NATIVE ? '' : S.precise ? '<div class="pcard on">' + ICON.check(14) + '<span>Legenda no modo ultra preciso</span></div>' :
@@ -640,7 +668,7 @@
   }
   function legenda() {
     var tl = timeline();
-    var tabs = [['legenda', 'Legenda'], ['color', 'Color Cine'], ['cortes', 'Cortes'], ['som', 'Som e final']];
+    var tabs = [['legenda', 'Legenda'], ['color', 'Cor'], ['efeitos', 'Efeitos'], ['cortes', 'Cortes'], ['som', 'Som']];
     return '<div class="edtop"><div class="plwrap" id="plwrap"><canvas class="gl"></canvas><canvas class="ov"></canvas></div>' +
       '<div class="plbar"><button class="plbtn" id="plbtn" data-a="pltoggle" aria-label="Tocar">' + ICON.play('#0A0A0B', 20) + '</button><span id="pltime">0,0s / ' + fmt1(tl.total) + '</span></div>' +
       '<div id="tlbox">' + tlHtml(tl) + '</div></div>' +
@@ -791,6 +819,7 @@
   }
   if (NATIVE) {
     S.precise = false; S.dl = -1;
+    setTimeout(function () { safe(FE.warmup()); }, 1500);
     safe(FE.modelInfo().then(function (r) { S.precise = !!(r && r.precise); }));
     safe(FE.addListener('modelProgress', function (d) { S.dl = Math.round((d.p || 0) * 100); var e = document.getElementById('dlp'); if (e) e.textContent = 'Baixando… ' + S.dl + '%'; }));
     safe(FE.addListener('transcribeProgress', function (d) { var c = S.clip; if (c && c.status === 'listening') { c.p = d.p; setListenProgress(d.p); } }));
@@ -819,7 +848,7 @@
   }
 
   /* ================= gerar e salvar no perfil ================= */
-  function snapshot() { return clone({ grade: S.grade, trimFillers: S.trimFillers, jumpZoom: S.jumpZoom, mode: S.mode, model: S.model, dyn: S.dyn, title: S.title, sub: S.sub, tf: S.tf, cs: S.cs, capsOn: S.capsOn, sfxOn: S.sfxOn, sfx: S.sfx, cta: S.cta, quality: S.quality, autoCut: S.autoCut, clip: S.clip, chips: S.chips }); }
+  function snapshot() { return clone({ fx: S.fx, grade: S.grade, trimFillers: S.trimFillers, jumpZoom: S.jumpZoom, mode: S.mode, model: S.model, dyn: S.dyn, title: S.title, sub: S.sub, tf: S.tf, cs: S.cs, capsOn: S.capsOn, sfxOn: S.sfxOn, sfx: S.sfx, cta: S.cta, quality: S.quality, autoCut: S.autoCut, clip: S.clip, chips: S.chips }); }
   function saveProjects() { try { store('flux_projects', JSON.stringify(S.projects.slice(0, 60))); } catch (e) { S.projects = S.projects.slice(0, 20); store('flux_projects', JSON.stringify(S.projects)); } }
   function addProject(out) {
     var pj = { id: Date.now(), date: Date.now(), path: out.path, thumb: out.thumb || (S.clip && S.clip.thumb) || '', durationMs: out.durationMs || Math.round(timeline().total * 1000), title: autoTitle(), modelName: S.mode === 'dyn' ? find(DYN, S.dyn).name + ' + ' + model().name : model().name, mode: S.mode, quality: S.quality, snap: snapshot() };
@@ -842,7 +871,9 @@
     var cs = capStyle();
     var spec = {
       segments: tl.segs.map(function (g) { var s0 = Math.round(g.srcS * 1000); return { path: g.path, startMs: s0, endMs: Math.max(s0 + 40, Math.round(g.srcE * 1000)), speed: g.speed, removeAudio: g.removeAudio, zoom: g.zoom || 1 }; }),
-      grade: (function () { var o = FluxGrade.params(S.grade); return FluxGrade.isOff(o) ? null : o; })(),
+      grade: (function () { var o = FluxGrade.params(S.grade), fc = FluxGrade.fxCode(S.fx.fx), tr = S.fx.trans; if (FluxGrade.isOff(o) && !fc && (tr === 'none' || tr === 'flash')) return null; o.fx = fc; o.fxAmt = S.fx.amt; return o; })(),
+      transition: S.fx.trans,
+      transCodes: tl.boundaries.map(function (b, i) { return FluxGrade.transCode(S.fx.trans, i); }),
       boundaries: tl.boundaries, finalStart: tl.finalStart, titleEnd: tl.titleEnd,
       captions: S.capsOn ? tl.captions.map(function (c) { return { s: c.s, e: c.e, words: c.words.map(function (w) { return { w: w.w, s: w.s, e: w.e }; }) }; }) : [],
       titleLayout: TT.layout(S.model, titleCfg({})), titleTf: S.tf,
@@ -855,7 +886,7 @@
   }
   function reedit(p) {
     var s = clone(p.snap || {});
-    ['grade', 'trimFillers', 'jumpZoom', 'mode', 'model', 'dyn', 'title', 'sub', 'tf', 'cs', 'capsOn', 'sfxOn', 'sfx', 'cta', 'quality', 'autoCut', 'clip', 'chips'].forEach(function (k) { if (s[k] !== undefined) S[k] = s[k]; });
+    ['fx', 'grade', 'trimFillers', 'jumpZoom', 'mode', 'model', 'dyn', 'title', 'sub', 'tf', 'cs', 'capsOn', 'sfxOn', 'sfx', 'cta', 'quality', 'autoCut', 'clip', 'chips'].forEach(function (k) { if (s[k] !== undefined) S[k] = s[k]; });
     if (S.clip && !S.clip.ana) analyze(S.clip);
     S.selCap = -1; go('legenda');
   }
@@ -870,7 +901,7 @@
     var b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
     var a = b.getAttribute('data-a'), v = b.getAttribute('data-v');
     if (a === 'q1') { S.q1 = v; draw(); setTimeout(function () { go('q2'); }, 220); }
-    else if (a === 'q2') { S.style = v; S.model = v === 'simples' ? 'minimal-1' : 'paraiso-1'; if (v === 'simples') { S.sfxOn = false; S.cs.anim = 'fade'; S.grade = { id: 'none', amount: 0, grain: 0, vignette: 0, bars: false }; } draw(); setTimeout(function () { go('q3'); }, 220); }
+    else if (a === 'q2') { S.style = v; S.model = v === 'simples' ? 'minimal-1' : 'paraiso-1'; if (v === 'simples') { S.sfxOn = false; S.cs.anim = 'fade'; S.grade = { id: 'none', amount: 0, grain: 0, vignette: 0, bars: false }; S.fx = { trans: 'none', fx: 'none', amt: 0.7 }; } draw(); setTimeout(function () { go('q3'); }, 220); }
     else if (a === 'q3') { S.pitchI = 0; go('pitch'); startPitch(); }
     else if (a === 'pnext') showPitch((S.pitchI + 1) % PITCH.length);
     else if (a === 'vip') { S.returnTo = S.screen === 'pitch' ? 'models' : S.screen; store('flux_onboarded', '1'); plDestroy(); go('vip'); }
@@ -918,6 +949,9 @@
       FE.downloadModel().then(function () { S.dl = -1; S.precise = true; toast('Modo preciso ativo. Ouvindo de novo…'); if (S.clip) { S.clip.status = 'listening'; S.clip.p = 0; } go('video'); listen(); })
         .catch(function (e) { S.dl = -1; refreshPanel(); toast((e && e.message) || 'Sem internet para baixar agora'); });
     }
+    else if (a === 'ftrans') { S.fx.trans = v; refreshPanel(); if (PL) { var tb3 = PL.tl.boundaries; if (tb3.length) plSeek(Math.max(0, tb3[0] - 0.1)); } }
+    else if (a === 'ffx') { S.fx.fx = v; refreshPanel(); if (PL) plDraw(true); }
+    else if (a === 'cpreset') { var pr = find(CAP_PRESETS, v); if (pr) { S.capPreset = v; for (var ck in pr.cs) S.cs[ck] = pr.cs[ck]; refreshStyle(); } }
     else if (a === 'edtab') { S.edTab = v; var tb = b.parentNode.children; for (var q = 0; q < tb.length; q++) tb[q].classList.toggle('on', tb[q] === b); refreshPanel(); }
     else if (a === 'grade') { S.grade.id = v; if (v !== 'none' && !S.grade.amount) S.grade.amount = 0.8; refreshPanel(); if (PL) { PL.grade = FluxGrade.params(S.grade); plDraw(true); } }
     else if (a === 'gbars') { S.grade.bars = !S.grade.bars; b.classList.toggle('on', S.grade.bars); if (PL) { PL.grade = FluxGrade.params(S.grade); plDraw(true); } }
@@ -956,6 +990,7 @@
     }
     if (id === 'tsize') { S.tf.s = (+e.target.value) / 100; var rv = document.getElementById('tsizev'); if (rv) rv.textContent = e.target.value + '%'; }
     if (ds) { S.cs[ds] = (+e.target.value) / 100; var lb = e.target.nextElementSibling; if (lb) lb.textContent = e.target.value + (ds === 'ls' ? '' : '%'); if (PL) plDraw(); }
+    if (e.target.getAttribute && e.target.getAttribute('data-fx')) { S.fx.amt = (+e.target.value) / 100; var fl = e.target.nextElementSibling; if (fl) fl.textContent = e.target.value + '%'; if (PL) plDraw(true); }
     var gk = e.target.getAttribute && e.target.getAttribute('data-gr');
     if (gk) { S.grade[gk] = (+e.target.value) / 100; var gl2 = e.target.nextElementSibling; if (gl2) gl2.textContent = e.target.value + '%'; if (PL) { PL.grade = FluxGrade.params(S.grade); plDraw(true); } }
     if (id === 'ctain') S.cta = e.target.value;

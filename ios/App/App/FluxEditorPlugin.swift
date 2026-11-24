@@ -16,6 +16,7 @@ public class FluxEditorPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControll
         CAPPluginMethod(name: "pickVideo", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "transcribe", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "modelInfo", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "warmup", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "downloadModel", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "render", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "cancelRender", returnType: CAPPluginReturnPromise),
@@ -92,6 +93,8 @@ public class FluxEditorPlugin: CAPPlugin, CAPBridgedPlugin, PHPickerViewControll
     @objc func modelInfo(_ call: CAPPluginCall) {
         call.resolve(["precise": true, "engine": "apple"])
     }
+
+    @objc func warmup(_ call: CAPPluginCall) { call.resolve() }
 
     @objc func downloadModel(_ call: CAPPluginCall) { call.resolve() }
 

@@ -32,6 +32,7 @@ Java_com_fluxcine_app_Whisper_nativeInit(JNIEnv *env, jclass, jstring jpath) {
     const char *path = env->GetStringUTFChars(jpath, nullptr);
     whisper_context_params cp = whisper_context_default_params();
     cp.use_gpu = false;
+    cp.flash_attn = true;   // atenção rápida: transcreve bem mais rápido no processador
     whisper_context *ctx = whisper_init_from_file_with_params(path, cp);
     env->ReleaseStringUTFChars(jpath, path);
     if (!ctx) __android_log_print(ANDROID_LOG_ERROR, TAG, "falha ao carregar o modelo");

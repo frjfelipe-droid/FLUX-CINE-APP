@@ -145,6 +145,12 @@ public class FluxEditorPlugin extends Plugin {
 
     // ---------------------------------------------------------------- escutar a fala
 
+    @PluginMethod
+    public void warmup(PluginCall call) {
+        io.execute(() -> SpeechEngine.get(getContext()).warmup());
+        call.resolve();
+    }
+
     /** Diz se o modelo de voz "preciso" (Whisper small) já foi baixado. */
     @PluginMethod
     public void modelInfo(PluginCall call) {

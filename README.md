@@ -5,7 +5,7 @@ Vídeos cinematográficos para empresários, editados no próprio celular.
 ## Fluxo
 1. **Abertura**: logo animado → 3 perguntas → apresentação (Acesso VIP ou Continuar no gratuito).
 2. **Cinemático (1 vídeo)** ou **Dinâmico (vários vídeos)**.
-3. **46 títulos cinematográficos** (23 estilos × 2 cores), incluindo os estilos de cartaz: Paraíso (vertical), Verão,
+3. **62 títulos cinematográficos** (31 estilos × 2 cores), separados por categoria (Cinema, Viral, Lifestyle, Retrô, Moderno, Novos). Os da v6: Capítulo, Eco, Manchete, Gravando (VHS), Cartaz, Luxo, Letreiro Neon e Entrevista (nome na tela). Os anteriores, incluindo os estilos de cartaz: Paraíso (vertical), Verão,
    Domingo, Além, Vlog de Viagem (em arco), A Última Chamada, Marcador (escrito à mão) e Tudo Passa (serifa elegante).
    A prévia fica travada; para posicionar, toque em **Mover título**, arraste, ajuste o tamanho e toque em **Pronto**.
 4. **Estrutura da fala**: o app escuta e separa
@@ -17,10 +17,11 @@ Vídeos cinematográficos para empresários, editados no próprio celular.
 6. **Dinâmico**: chips com cortes **rápidos, lentos e pausas** → mensagem → final de impacto, num vídeo só.
 7. **Editor com abas**: player com a cor aplicada ao vivo e linha do tempo com **agulha fixa no centro**
    (arraste a régua para navegar; toque num bloco para corrigir a legenda).
-   - **Legenda**: 14+ fontes, tamanho, espaçamento, sombra, efeito, destaque, cor e posição.
+   - **Legenda**: 12 modelos prontos de um toque (Viral, Podcast, Impacto, Gibi, Neon, Elegante, Cinema, Minimal, Máquina, Caneta, Etiqueta, Série) ou ajuste fino: 14+ fontes, tamanho, espaçamento, sombra, efeito, destaque, cor e posição.
    - **Color Cine**: 9 colorações de cinema (Blockbuster, Kodak 400, Fuji Verde, Hora Dourada, Anos 70, Bleach Bypass,
      Luar, Neon Noite, Noir P&B), intensidade, **granulação de filme**, vinheta e faixas de cinema.
-   - **Cortes** e **Som e final** (efeitos sonoros, CTA, Alta/4K).
+   - **Efeitos**: transição em cada corte (Corte seco, Flash, Zoom soco, Chicote, Glitch, Tremor, Luz vazada, Piscar preto ou Misturado) e efeito de filme (Luz de filme, Poeira e riscos, VHS) com intensidade.
+   - **Cortes** e **Som** (efeitos sonoros, CTA, Alta/4K).
 8. Salvo no **Perfil** (assistir, baixar, compartilhar, postar no Instagram, reeditar, apagar).
 
 ## Legenda precisa

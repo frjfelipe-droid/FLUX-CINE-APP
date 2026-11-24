@@ -35,13 +35,35 @@
     '#ifdef GL_FRAGMENT_PRECISION_HIGH',
     'precision highp float;',
     '#endif',
-    'uniform sampler2D uTex;',
+    'uniform sampler2D uTex; uniform vec2 uScale; uniform vec2 uOff;',
     'varying vec2 vUv; varying vec2 vScr;',
     'uniform vec3 uLift, uGamma, uGain, uShadow, uHigh;',
     'uniform float uSat, uContrast, uFade, uMono, uAmount, uGrain, uVignette, uBars, uTime, uAspect;',
+    'uniform float uTrans, uTd, uFx, uFxAmt;',
     'float hash(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }',
+    'vec3 tap(vec2 u){ return texture2D(uTex, (u - 0.5) * uScale + 0.5 + uOff).rgb; }',
     'void main(){',
-    '  vec3 src = texture2D(uTex, vUv).rgb;',
+    '  vec2 u = vec2(vScr.x, 1.0 - vScr.y);',
+    '  float w = clamp(1.0 - abs(uTd) / 0.22, 0.0, 1.0); w = w * w * (3.0 - 2.0 * w);',
+    '  if (uTrans < 0.5) w = 0.0;',
+    '  vec3 src;',
+    '  if (w > 0.001 && uTrans < 1.5) {',
+    '    vec2 c0 = (u - 0.5) / (1.0 + 0.22 * w) + 0.5; vec2 dir = (c0 - 0.5) * 0.07 * w;',
+    '    src = (tap(c0) + tap(c0 - dir) + tap(c0 - 2.0 * dir) + tap(c0 + dir)) * 0.25;',
+    '  } else if (w > 0.001 && uTrans < 2.5) {',
+    '    float sg = uTd < 0.0 ? 1.0 : -1.0; vec2 c0 = u + vec2(sg * 0.3 * w * w, 0.0); vec3 acc = vec3(0.0);',
+    '    for (int i = 0; i < 10; i++) { float f = float(i) / 9.0 - 0.5; acc += tap(c0 + vec2(f * 0.2 * w, 0.0)); }',
+    '    src = acc / 10.0;',
+    '  } else if (w > 0.001 && uTrans < 3.5) {',
+    '    float fr = floor(uTime * 24.0), row = floor(u.y * 28.0);',
+    '    float jt = (hash(vec2(row, fr)) - 0.5) * 0.14 * w * step(0.5, hash(vec2(row * 1.7, fr + 3.0)));',
+    '    vec2 c0 = u + vec2(jt, 0.0); float o = 0.025 * w;',
+    '    src = vec3(tap(c0 + vec2(o, 0.0)).r, tap(c0).g, tap(c0 - vec2(o, 0.0)).b);',
+    '  } else if (w > 0.001 && uTrans < 4.5) {',
+    '    vec2 off = vec2(sin(uTime * 83.0), cos(uTime * 97.0)) * 0.025 * w;',
+    '    src = tap((u - 0.5) / (1.0 + 0.07 * w) + 0.5 + off);',
+    '  } else src = tap(u);',
+    '  if (uFx > 2.5 && uFx < 3.5) { float o2 = 0.0035 * uFxAmt; src = vec3(tap(u + vec2(o2, 0.0)).r, src.g, tap(u - vec2(o2, 0.0)).b); }',
     '  vec3 c = (src - 0.5) * uContrast + 0.5;',
     '  c = uGain * (c + uLift * (1.0 - c));',
     '  c = pow(clamp(c, 0.0, 1.0), 1.0 / uGamma);',
@@ -55,9 +77,33 @@
     '  vec2 d = (vScr - 0.5) * vec2(1.0, uAspect);',
     '  float vg = smoothstep(0.42, 1.05, length(d) / max(1.0, uAspect * 0.62));',
     '  c *= 1.0 - uVignette * vg;',
+    '  float fr2 = floor(uTime * 24.0);',
+    '  if (uFx > 0.5 && uFx < 1.5) {',
+    '    float tt = uTime * 0.35;',
+    '    float la = exp(-pow((vScr.x - 0.12 - 0.22 * sin(tt)) * 3.0, 2.0) - pow((vScr.y - 0.22) * 2.2, 2.0));',
+    '    float lb = exp(-pow((vScr.x - 0.9 - 0.1 * cos(tt * 1.3)) * 2.5, 2.0) - pow((vScr.y - 0.75 - 0.15 * sin(tt * 0.7)) * 2.0, 2.0));',
+    '    vec3 lk = clamp(vec3(1.0, 0.45, 0.15) * la * 0.9 + vec3(1.0, 0.75, 0.35) * lb * 0.6, 0.0, 1.0) * uFxAmt;',
+    '    c = 1.0 - (1.0 - c) * (1.0 - lk);',
+    '  } else if (uFx > 1.5 && uFx < 2.5) {',
+    '    float speck = step(0.9986, hash(floor(vScr * vec2(180.0, 320.0)) + fr2 * 7.13));',
+    '    float sx = hash(vec2(fr2, 3.1));',
+    '    float scr = step(abs(vScr.x - sx), 0.0012) * step(0.6, hash(vec2(fr2, 9.2)));',
+    '    c = mix(c, vec3(0.95, 0.93, 0.88), clamp(speck * 0.85 + scr * 0.4, 0.0, 1.0) * uFxAmt);',
+    '    c *= 1.0 - 0.07 * uFxAmt * hash(vec2(fr2, 1.0));',
+    '  } else if (uFx > 2.5 && uFx < 3.5) {',
+    '    c *= 1.0 - 0.13 * uFxAmt * (sin(vScr.y * 1500.0) * 0.5 + 0.5);',
+    '    float band = 1.0 - smoothstep(0.0, 0.025, abs(fract(vScr.y * 0.7 - uTime * 0.12) - 0.5));',
+    '    c += band * 0.08 * uFxAmt * (hash(vec2(floor(vScr.x * 300.0), fr2)) - 0.3);',
+    '    c = mix(c, c * vec3(1.04, 0.97, 1.07), uFxAmt);',
+    '  }',
     '  float n = hash(floor(vScr * vec2(540.0, 960.0)) + fract(uTime * 7.0) * 113.0) - 0.5;',
     '  float lum = dot(c, vec3(0.299, 0.587, 0.114));',
     '  c += n * uGrain * 0.32 * (1.15 - lum);',
+    '  if (uTrans > 4.5 && uTrans < 5.5) {',
+    '    float x = vScr.x + vScr.y * 0.4, pos = 0.7 - uTd * 3.0;',
+    '    c += (vec3(1.0, 0.55, 0.22) * 1.3 * exp(-pow((x - pos) * 2.2, 2.0)) + vec3(1.0, 0.8, 0.5) * 0.25) * w;',
+    '  }',
+    '  if (uTrans > 5.5) c *= 1.0 - w;',
     '  if (vScr.y < uBars || vScr.y > 1.0 - uBars) c = vec3(0.0);',
     '  gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);',
     '}'
@@ -77,10 +123,10 @@
     var tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    var U = {}; ['uTex', 'uScale', 'uOff', 'uLift', 'uGamma', 'uGain', 'uShadow', 'uHigh', 'uSat', 'uContrast', 'uFade', 'uMono', 'uAmount', 'uGrain', 'uVignette', 'uBars', 'uTime', 'uAspect'].forEach(function (n) { U[n] = gl.getUniformLocation(pr, n); });
+    var U = {}; ['uTex', 'uScale', 'uOff', 'uTrans', 'uTd', 'uFx', 'uFxAmt', 'uLift', 'uGamma', 'uGain', 'uShadow', 'uHigh', 'uSat', 'uContrast', 'uFade', 'uMono', 'uAmount', 'uGrain', 'uVignette', 'uBars', 'uTime', 'uAspect'].forEach(function (n) { U[n] = gl.getUniformLocation(pr, n); });
     this.gl = gl; this.U = U; this.canvas = canvas;
   }
-  Renderer.prototype.draw = function (src, o, zoom, t) {
+  Renderer.prototype.draw = function (src, o, zoom, t, fx) {
     var gl = this.gl, U = this.U, cv = this.canvas;
     var vw = src.videoWidth || src.naturalWidth || src.width, vh = src.videoHeight || src.naturalHeight || src.height;
     if (!vw || !vh || (src.readyState !== undefined && src.readyState < 2)) return false;
@@ -97,10 +143,24 @@
     gl.uniform3fv(U.uLift, o.lift); gl.uniform3fv(U.uGamma, o.gamma); gl.uniform3fv(U.uGain, o.gain); gl.uniform3fv(U.uShadow, o.shadow); gl.uniform3fv(U.uHigh, o.high);
     gl.uniform1f(U.uSat, o.sat); gl.uniform1f(U.uContrast, o.contrast); gl.uniform1f(U.uFade, o.fade); gl.uniform1f(U.uMono, o.mono);
     gl.uniform1f(U.uAmount, o.amount); gl.uniform1f(U.uGrain, o.grain); gl.uniform1f(U.uVignette, o.vignette); gl.uniform1f(U.uBars, o.bars);
+    fx = fx || {};
+    gl.uniform1f(U.uTrans, fx.trans || 0); gl.uniform1f(U.uTd, fx.td == null ? 9 : fx.td); gl.uniform1f(U.uFx, fx.fx || 0); gl.uniform1f(U.uFxAmt, fx.amt == null ? 0.7 : fx.amt);
     gl.uniform1f(U.uTime, t || 0); gl.uniform1f(U.uAspect, h / w);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     return true;
   };
 
-  root.FluxGrade = { PRESETS: PRESETS, find: find, params: params, isOff: isOff, Renderer: Renderer, FS: FS };
+  /* transições nos cortes e efeitos de filme (mesmos números no Android e no iPhone) */
+  var TRANS = [['none', 'Corte seco', 0], ['flash', 'Flash', 0], ['zoom', 'Zoom soco', 1], ['whip', 'Chicote', 2], ['glitch', 'Glitch', 3], ['shake', 'Tremor', 4], ['leak', 'Luz vazada', 5], ['dip', 'Piscar preto', 6], ['mix', 'Misturado', -1]];
+  var MIX = [1, 2, 3, 5, 4, 6];
+  var FX = [['none', 'Nenhum', 0], ['leak', 'Luz de filme', 1], ['dust', 'Poeira e riscos', 2], ['vhs', 'VHS', 3]];
+  function transCode(id, idx) { for (var i = 0; i < TRANS.length; i++) if (TRANS[i][0] === id) return TRANS[i][2] < 0 ? MIX[(idx || 0) % MIX.length] : TRANS[i][2]; return 0; }
+  function fxCode(id) { for (var i = 0; i < FX.length; i++) if (FX[i][0] === id) return FX[i][2]; return 0; }
+  /* distância (s) até o corte mais próximo e o código da transição dele */
+  function cutState(t, bounds, trans) {
+    var best = 9, bi = -1;
+    for (var i = 0; i < (bounds || []).length; i++) { var d = t - bounds[i]; if (Math.abs(d) < Math.abs(best)) { best = d; bi = i; } }
+    return { td: best, trans: bi < 0 ? 0 : transCode(trans, bi) };
+  }
+  root.FluxGrade = { TRANS: TRANS, FX: FX, transCode: transCode, fxCode: fxCode, cutState: cutState, PRESETS: PRESETS, find: find, params: params, isOff: isOff, Renderer: Renderer, FS: FS };
 })(window);

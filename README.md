@@ -5,7 +5,7 @@ Vídeos cinematográficos para empresários, editados no próprio celular.
 ## Fluxo
 1. **Abertura**: logo animado → 3 perguntas → apresentação (Acesso VIP ou Continuar no gratuito).
 2. **Cinemático (1 vídeo)** ou **Dinâmico (vários vídeos)**.
-3. **62 títulos cinematográficos** (31 estilos × 2 cores), separados por categoria (Cinema, Viral, Lifestyle, Retrô, Moderno, Novos). Os da v6: Capítulo, Eco, Manchete, Gravando (VHS), Cartaz, Luxo, Letreiro Neon e Entrevista (nome na tela). Os anteriores, incluindo os estilos de cartaz: Paraíso (vertical), Verão,
+3. **76 títulos cinematográficos** (38 estilos × 2 cores), separados por categoria (Cinema, Viral, Lifestyle, Retrô, Moderno, Novos). Os da v6: Créditos, Festival, Título Duplo, Espaçado, Condensado, Sonho Dourado, Documentário, Capítulo, Eco, Manchete, Gravando (VHS), Cartaz, Luxo, Letreiro Neon e Entrevista (nome na tela). Os anteriores, incluindo os estilos de cartaz: Paraíso (vertical), Verão,
    Domingo, Além, Vlog de Viagem (em arco), A Última Chamada, Marcador (escrito à mão) e Tudo Passa (serifa elegante).
    A prévia fica travada; para posicionar, toque em **Mover título**, arraste, ajuste o tamanho e toque em **Pronto**.
 4. **Estrutura da fala**: o app escuta e separa
@@ -20,7 +20,7 @@ Vídeos cinematográficos para empresários, editados no próprio celular.
    - **Legenda**: 12 modelos prontos de um toque (Viral, Podcast, Impacto, Gibi, Neon, Elegante, Cinema, Minimal, Máquina, Caneta, Etiqueta, Série) ou ajuste fino: 14+ fontes, tamanho, espaçamento, sombra, efeito, destaque, cor e posição.
    - **Color Cine**: 9 colorações de cinema (Blockbuster, Kodak 400, Fuji Verde, Hora Dourada, Anos 70, Bleach Bypass,
      Luar, Neon Noite, Noir P&B), intensidade, **granulação de filme**, vinheta e faixas de cinema.
-   - **Efeitos**: transição em cada corte (Corte seco, Flash, Zoom soco, Chicote, Glitch, Tremor, Luz vazada, Piscar preto ou Misturado) e efeito de filme (Luz de filme, Poeira e riscos, VHS) com intensidade.
+   - **Efeitos**: transição em cada corte (Corte seco, Flash, Zoom soco, Chicote, Glitch, Tremor, Luz vazada, Piscar preto ou Misturado) e efeito visual (Luz de filme, Poeira e riscos, VHS, TV de tubo, Filme queimado, Superexposto, Duotone, Holograma, Glitch retrô) com intensidade.
    - **Cortes** e **Som** (efeitos sonoros, CTA, Alta/4K).
 8. Salvo no **Perfil** (assistir, baixar, compartilhar, postar no Instagram, reeditar, apagar).
 
@@ -36,6 +36,8 @@ Vídeos cinematográficos para empresários, editados no próprio celular.
   `TitleLayer.java` / `CineRenderer.java` (mesmo desenho da prévia).
 - **iPhone**: `ios/App/App/FluxEditorPlugin.swift`, `CineExport.swift` (AVFoundation + compositor próprio + Core Image),
   `CineDraw.swift` (títulos e legenda em Core Graphics).
+
+O shader do Color Cine e dos efeitos fica em `tools/grade.glsl`; `python3 tools/gen_shaders.py` gera as versões da prévia, do Android e do iPhone.
 
 ## Builds automáticos (GitHub Actions)
 - **Gerar APK do FLUX CINE** → `FLUX-CINE.apk` em *Releases*.

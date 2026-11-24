@@ -108,8 +108,8 @@ public class ExportTest {
 
         // B — título Glitch, legenda Bangers com brilho e pulo, título movido para cima e menor
         JSONObject capGlow = new JSONObject(capBox.toString()).put("fontFile", "Bangers-400.ttf").put("upper", true).put("shadow", "glow").put("hl", "color").put("anim", "bounce").put("size", 1.25).put("ls", 0.04).put("y", 0.62).put("accent", "#00E5FF");
-        JSONObject b = new JSONObject(a.toString()).put("titleLayout", layouts.getJSONArray("cartaz"))
-                .put("grade", new JSONObject(layouts.getJSONObject("grade").toString()).put("fx", 3).put("fxAmt", 0.8)).put("captionStyle", capGlow)
+        JSONObject b = new JSONObject(a.toString()).put("titleLayout", layouts.getJSONArray("festival"))
+                .put("grade", new JSONObject(layouts.getJSONObject("grade").toString()).put("fx", 5).put("fxAmt", 0.9)).put("captionStyle", capGlow)
                 .put("titleTf", new JSONObject().put("ox", 0).put("oy", -420).put("s", 0.8)).put("cta", "").put("ending", "fade").put("sfx", "whoosh");
         report.put("B", runExport(target, b, "B", new double[]{0.25, 0.6, 1.5, b.getDouble("titleEnd") + 0.6, pa.finalStart + 0.3, pa.total - 0.5}));
 

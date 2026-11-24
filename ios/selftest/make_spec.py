@@ -25,7 +25,7 @@ B = {
         {'path': P, 'startMs': 5000, 'endMs': 5600, 'speed': 0.5, 'removeAudio': True},
         {'path': P, 'startMs': 7000, 'endMs': 10000}],
     'boundaries': [1.2, 2.4], 'finalStart': -1, 'titleEnd': 2.4,
-    'titleLayout': lay['entrevista'], 'grade': dict(lay['grade'], amount=0, bars=0, fx=3, fxAmt=0.9),
+    'titleLayout': lay['creditos'], 'grade': dict(lay['grade'], amount=0, bars=0, fx=4, fxAmt=0.9),
     'transition': 'glitch', 'transCodes': [3, 3],
     'captions': [{'s': 2.5, 'e': 4.5, 'words': words(2.5, 4.5, 'três erros que custam')}],
     'captionStyle': dict(cap, fontFile='Anton-400.ttf', upper=True, shadow='glow', hl='color', anim='bounce'),

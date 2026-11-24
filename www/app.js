@@ -635,10 +635,11 @@
   function fxPanel() {
     var f = S.fx, TI = { none: '│', flash: '✦', zoom: '⊕', whip: '≫', glitch: '▚', shake: '≈', leak: '☀', dip: '◐', mix: '✱' };
     var tr = FluxGrade.TRANS.map(function (x) { return '<button class="fxcard ' + (f.trans === x[0] ? 'on' : '') + '" data-a="ftrans" data-v="' + x[0] + '"><span class="fxi">' + TI[x[0]] + '</span><b>' + x[1] + '</b></button>'; }).join('');
-    var fx = FluxGrade.FX.map(function (x) { return '<button class="sug ' + (f.fx === x[0] ? 'on' : '') + '" data-a="ffx" data-v="' + x[0] + '">' + x[1] + '</button>'; }).join('');
+    var FXS = { none: '#3F3F46,#18181B', leak: '#FF8A3D,#2A1408', dust: '#CFC6B4,#3A352C', vhs: '#7B5CFF,#FF4F9A', crt: '#3DE1FF,#0B2A1E', burn: '#FF3B0A,#FFD27A', over: '#FFE3C2,#E5341D', duo: '#0A2A1A,#FFC83D', holo: '#1E9BFF,#0A1640', glitch: '#FF2D55,#00E5FF' };
+    var fx = FluxGrade.FX.map(function (x) { return '<button class="gcard ' + (f.fx === x[0] ? 'on' : '') + '" data-a="ffx" data-v="' + x[0] + '"><span class="gsw" style="background:linear-gradient(135deg,' + FXS[x[0]] + ')"></span><b>' + x[1] + '</b></button>'; }).join('');
     var v = Math.round(f.amt * 100);
     return '<h2 style="margin:4px 0 10px">Transição nos cortes</h2><div class="fxgrid">' + tr + '</div><p class="hint">Aparece em cada corte. Arraste a linha do tempo até um corte para ver.</p>' +
-      '<h2 style="margin:18px 0 10px">Efeito de filme</h2><div class="chiprow">' + fx + '</div>' +
+      '<h2 style="margin:18px 0 10px">Efeito visual</h2><div class="grades">' + fx + '</div>' +
       '<div class="sizer" style="margin-top:10px"><span>Intensidade</span><input type="range" data-fx="amt" min="0" max="100" value="' + v + '"><b>' + v + '%</b></div>';
   }
   function cutsPanel() {

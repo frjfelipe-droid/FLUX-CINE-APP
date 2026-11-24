@@ -11,9 +11,23 @@ enum CineGrade {
     static let kernel: CIKernel? = {
         let src = """
 float fhash(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float vnoise(vec2 p){ vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f); float a = fhash(i); float b = fhash(i + vec2(1.0, 0.0)); float c2 = fhash(i + vec2(0.0, 1.0)); float d2 = fhash(i + vec2(1.0, 1.0)); return mix(mix(a, b, f.x), mix(c2, d2, f.x), f.y); }
 vec3 tap(sampler s, vec2 size, vec2 u){ return sample(s, samplerTransform(s, u * size)).rgb; }
 kernel vec4 fluxGrade(sampler img, vec3 lift, vec3 gam, vec3 gain, vec3 shd, vec3 hig, vec4 p1, vec4 p2, vec4 p3, vec2 size, float time) {
+
   vec2 dc = destCoord(); vec2 vScr = vec2(dc.x / size.x, 1.0 - dc.y / size.y); vec2 u = dc / size; float uAspect = size.y / size.x;
+  float fr2 = floor(time * 24.0);
+  float crtMask = 1.0;
+  if (p3.z > 3.5 && p3.z < 4.5) {
+    vec2 cc = u - 0.5; float r2 = dot(cc, cc);
+    u = 0.5 + cc * (1.0 + 0.16 * p3.w * r2);
+    crtMask = step(0.0, u.x) * step(u.x, 1.0) * step(0.0, u.y) * step(u.y, 1.0);
+  }
+  if (p3.z > 8.5 && p3.z < 9.5) {
+    float fb = floor(time * 10.0); float row = floor(u.y * 18.0);
+    float on = step(0.82, fhash(vec2(row, fb))) * step(0.35, fhash(vec2(fb, 7.0)));
+    u.x += (fhash(vec2(row * 3.1, fb)) - 0.5) * 0.12 * p3.w * on;
+  }
   float w = clamp(1.0 - abs(p3.y) / 0.22, 0.0, 1.0); w = w * w * (3.0 - 2.0 * w);
   if (p3.x < 0.5) w = 0.0;
   vec3 src;
@@ -21,19 +35,24 @@ kernel vec4 fluxGrade(sampler img, vec3 lift, vec3 gam, vec3 gain, vec3 shd, vec
     vec2 c0 = (u - 0.5) / (1.0 + 0.22 * w) + 0.5; vec2 dir = (c0 - 0.5) * 0.07 * w;
     src = (tap(img, size, c0) + tap(img, size, c0 - dir) + tap(img, size, c0 - 2.0 * dir) + tap(img, size, c0 + dir)) * 0.25;
   } else if (w > 0.001 && p3.x < 2.5) {
-    float sg = p3.y < 0.0 ? 1.0 : -1.0; vec2 c0 = u + vec2(sg * 0.3 * w * w, 0.0); vec3 acc = vec3(0.0);
-    for (int i = 0; i < 10; i++) { float f = float(i) / 9.0 - 0.5; acc += tap(img, size, c0 + vec2(f * 0.2 * w, 0.0)); }
+    float sg = p3.y < 0.0 ? 1.0 : -1.0; vec2 c1 = u + vec2(sg * 0.3 * w * w, 0.0); vec3 acc = vec3(0.0);
+    for (int i = 0; i < 10; i++) { float f = float(i) / 9.0 - 0.5; acc += tap(img, size, c1 + vec2(f * 0.2 * w, 0.0)); }
     src = acc / 10.0;
   } else if (w > 0.001 && p3.x < 3.5) {
-    float fr = floor(time * 24.0), row = floor(u.y * 28.0);
-    float jt = (fhash(vec2(row, fr)) - 0.5) * 0.14 * w * step(0.5, fhash(vec2(row * 1.7, fr + 3.0)));
-    vec2 c0 = u + vec2(jt, 0.0); float o = 0.025 * w;
-    src = vec3(tap(img, size, c0 + vec2(o, 0.0)).r, tap(img, size, c0).g, tap(img, size, c0 - vec2(o, 0.0)).b);
+    float row2 = floor(u.y * 28.0);
+    float jt = (fhash(vec2(row2, fr2)) - 0.5) * 0.14 * w * step(0.5, fhash(vec2(row2 * 1.7, fr2 + 3.0)));
+    vec2 c2 = u + vec2(jt, 0.0); float o = 0.025 * w;
+    src = vec3(tap(img, size, c2 + vec2(o, 0.0)).r, tap(img, size, c2).g, tap(img, size, c2 - vec2(o, 0.0)).b);
   } else if (w > 0.001 && p3.x < 4.5) {
     vec2 off = vec2(sin(time * 83.0), cos(time * 97.0)) * 0.025 * w;
     src = tap(img, size, (u - 0.5) / (1.0 + 0.07 * w) + 0.5 + off);
   } else src = tap(img, size, u);
-  if (p3.z > 2.5 && p3.z < 3.5) { float o2 = 0.0035 * p3.w; src = vec3(tap(img, size, u + vec2(o2, 0.0)).r, src.g, tap(img, size, u - vec2(o2, 0.0)).b); }
+  float split = 0.0;
+  if (p3.z > 2.5 && p3.z < 3.5) split = 0.0035;
+  if (p3.z > 3.5 && p3.z < 4.5) split = 0.0025;
+  if (p3.z > 7.5 && p3.z < 8.5) split = 0.004;
+  if (p3.z > 8.5 && p3.z < 9.5) split = 0.009;
+  if (split > 0.0) { float o2 = split * p3.w; src = vec3(tap(img, size, u + vec2(o2, 0.0)).r, src.g, tap(img, size, u - vec2(o2, 0.0)).b); }
   vec3 c = (src - 0.5) * p1.y + 0.5;
   c = gain * (c + lift * (1.0 - c));
   c = pow(clamp(c, 0.0, 1.0), 1.0 / gam);
@@ -47,7 +66,7 @@ kernel vec4 fluxGrade(sampler img, vec3 lift, vec3 gam, vec3 gain, vec3 shd, vec
   vec2 d = (vScr - 0.5) * vec2(1.0, uAspect);
   float vg = smoothstep(0.42, 1.05, length(d) / max(1.0, uAspect * 0.62));
   c *= 1.0 - p2.z * vg;
-  float fr2 = floor(time * 24.0);
+  float lm = dot(c, vec3(0.299, 0.587, 0.114));
   if (p3.z > 0.5 && p3.z < 1.5) {
     float tt = time * 0.35;
     float la = exp(-pow((vScr.x - 0.12 - 0.22 * sin(tt)) * 3.0, 2.0) - pow((vScr.y - 0.22) * 2.2, 2.0));
@@ -65,13 +84,44 @@ kernel vec4 fluxGrade(sampler img, vec3 lift, vec3 gam, vec3 gain, vec3 shd, vec
     float band = 1.0 - smoothstep(0.0, 0.025, abs(fract(vScr.y * 0.7 - time * 0.12) - 0.5));
     c += band * 0.08 * p3.w * (fhash(vec2(floor(vScr.x * 300.0), fr2)) - 0.3);
     c = mix(c, c * vec3(1.04, 0.97, 1.07), p3.w);
+  } else if (p3.z > 3.5 && p3.z < 4.5) {
+    float tri = fract(vScr.x * 360.0);
+    vec3 mask = vec3(step(tri, 0.333), step(0.333, tri) * step(tri, 0.666), step(0.666, tri));
+    c *= mix(vec3(1.0), 0.55 + 0.75 * mask, 0.45 * p3.w);
+    c *= 1.0 - 0.28 * p3.w * (sin(vScr.y * 2200.0) * 0.5 + 0.5);
+    c *= 1.0 + 0.25 * p3.w;
+    vec2 e = abs(u - 0.5) * 2.0; float corner = smoothstep(1.0, 0.92, max(e.x, e.y));
+    c *= crtMask * mix(1.0, corner, p3.w);
+  } else if (p3.z > 4.5 && p3.z < 5.5) {
+    float n1 = vnoise(vec2(vScr.x * 2.5 + time * 0.35, vScr.y * 1.8 - time * 0.25));
+    float edge = max(smoothstep(0.55, 1.0, vScr.x + n1 * 0.35), smoothstep(0.62, 1.0, 1.0 - vScr.y + n1 * 0.3));
+    float pulse = 0.6 + 0.4 * sin(time * 1.7 + n1 * 3.0);
+    vec3 burn = mix(vec3(1.0, 0.25, 0.02), vec3(1.0, 0.85, 0.45), edge) * edge * pulse;
+    c = 1.0 - (1.0 - c) * (1.0 - clamp(burn * 1.2 * p3.w, 0.0, 1.0));
+  } else if (p3.z > 5.5 && p3.z < 6.5) {
+    c = 1.0 - (1.0 - c) * (1.0 - 0.28 * p3.w);
+    c += vec3(0.95, 0.25, 0.12) * smoothstep(0.55, 1.0, lm) * 0.35 * p3.w;
+    c = mix(c, c * vec3(1.08, 0.98, 0.86), p3.w);
+    float lk2 = exp(-pow((vScr.x - 0.95) * 3.0, 2.0)) * (0.7 + 0.3 * sin(time * 0.8));
+    c += vec3(1.0, 0.3, 0.1) * lk2 * 0.35 * p3.w;
+  } else if (p3.z > 6.5 && p3.z < 7.5) {
+    vec3 duo = mix(vec3(0.04, 0.16, 0.1), vec3(1.0, 0.78, 0.25), smoothstep(0.05, 0.95, lm));
+    c = mix(c, duo, p3.w);
+  } else if (p3.z > 7.5 && p3.z < 8.5) {
+    vec3 holo = vec3(0.25, 0.75, 1.0) * (lm * 1.35 + 0.05);
+    holo *= 0.8 + 0.2 * sin(vScr.y * 900.0 - time * 12.0);
+    holo *= 0.92 + 0.08 * fhash(vec2(fr2, 2.0));
+    c = mix(c, holo, p3.w);
+  } else if (p3.z > 8.5 && p3.z < 9.5) {
+    c = mix(c, floor(c * 6.0) / 6.0, 0.35 * p3.w);
+    c *= 1.0 - 0.1 * p3.w * (sin(vScr.y * 1400.0) * 0.5 + 0.5);
   }
   float n = fhash(floor(vScr * vec2(540.0, 960.0)) + fract(time * 7.0) * 113.0) - 0.5;
   float lum = dot(c, vec3(0.299, 0.587, 0.114));
   c += n * p2.y * 0.32 * (1.15 - lum);
   if (p3.x > 4.5 && p3.x < 5.5) {
-    float x = vScr.x + vScr.y * 0.4, pos = 0.7 - p3.y * 3.0;
-    c += (vec3(1.0, 0.55, 0.22) * 1.3 * exp(-pow((x - pos) * 2.2, 2.0)) + vec3(1.0, 0.8, 0.5) * 0.25) * w;
+    float xx = vScr.x + vScr.y * 0.4; float pos = 0.7 - p3.y * 3.0;
+    c += (vec3(1.0, 0.55, 0.22) * 1.3 * exp(-pow((xx - pos) * 2.2, 2.0)) + vec3(1.0, 0.8, 0.5) * 0.25) * w;
   }
   if (p3.x > 5.5) c *= 1.0 - w;
   if (p2.w > 0.001 && (vScr.y < p2.w || vScr.y > 1.0 - p2.w)) c = vec3(0.0);

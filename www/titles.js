@@ -41,13 +41,21 @@
     ['cartaz', 'Cartaz', 'pôster esportivo', { c: '#FFFFFF', a: '#FF5A1F' }, 'Cartaz Turquesa', { c: '#FFFFFF', a: '#16C7B7' }],
     ['luxo', 'Luxo', 'marca de alto padrão', { c: '#E9D6A7', a: '#E9D6A7' }, 'Luxo Pérola', { c: '#F5F2EC', a: '#BFB7A8' }],
     ['letreiro', 'Letreiro Neon', 'neon escrito à mão', { c: '#FF7AD9', a: '#FFFFFF' }, 'Letreiro Azul', { c: '#6FD8FF', a: '#FFFFFF' }],
-    ['entrevista', 'Entrevista', 'nome na tela, estilo documentário', { c: '#FFFFFF', a: '#FF7A1A' }, 'Entrevista Lima', { c: '#FFFFFF', a: '#C6FF3D' }]
+    ['entrevista', 'Entrevista', 'nome na tela, estilo documentário', { c: '#FFFFFF', a: '#FF7A1A' }, 'Entrevista Lima', { c: '#FFFFFF', a: '#C6FF3D' }],
+    ['creditos', 'Créditos', 'abertura com ficha técnica', { c: '#FFFFFF', a: '#E5341D' }, 'Créditos Dourado', { c: '#F2D13A', a: '#FFFFFF' }],
+    ['festival', 'Festival', 'neon premiado', { c: '#FF8A1F', a: '#FFFFFF' }, 'Festival Rosa', { c: '#FF3DDB', a: '#FFFFFF' }],
+    ['duplo', 'Título Duplo', 'bloco + caligrafia por cima', { c: '#FFB21F', a: '#FFFFFF' }, 'Duplo Branco', { c: '#FFFFFF', a: '#FFB21F' }],
+    ['espaco', 'Espaçado', 'serifa fina bem aberta', { c: '#FFFFFF', a: '#FFFFFF' }, 'Espaçado Areia', { c: '#EADBC0', a: '#EADBC0' }],
+    ['condensado', 'Condensado', 'duas cores, elenco embaixo', { c: '#FFFFFF', a: '#3D8BFF' }, 'Condensado Verde', { c: '#FFFFFF', a: '#7DFF4F' }],
+    ['sonho', 'Sonho Dourado', 'letra 3D amarela', { c: '#FFC21F', a: '#7A3A00' }, 'Sonho Laranja', { c: '#FF8A1F', a: '#5A1A00' }],
+    ['documentario', 'Documentário', 'caligrafia + selo vermelho', { c: '#FFFFFF', a: '#E5141D' }, 'Documentário Creme', { c: '#F3E6C9', a: '#FF7A1A' }]
   ];
   var CATS = { paraiso: 'cinema', chamada: 'cinema', tudo: 'cinema', classico: 'cinema', capitulo: 'cinema', luxo: 'cinema', alem: 'cinema', paladar: 'cinema',
     impacto: 'viral', empilhado: 'viral', insano: 'viral', caixa: 'viral', cartaz: 'viral', eco: 'viral', domingo: 'viral',
     verao: 'lifestyle', vlog: 'lifestyle', escape: 'lifestyle', camp: 'lifestyle', assinatura: 'lifestyle', marcador: 'lifestyle', letreiro: 'lifestyle',
     retro: 'retro', maquina: 'retro', gravando: 'retro', manchete: 'retro', revista: 'retro',
-    glitch: 'tech', neon: 'tech', minimal: 'tech', entrevista: 'tech' };
+    glitch: 'tech', neon: 'tech', minimal: 'tech', entrevista: 'tech',
+    creditos: 'cinema', festival: 'cinema', espaco: 'cinema', documentario: 'cinema', duplo: 'viral', condensado: 'viral', sonho: 'retro' };
   var DEMO = {
     paraiso: ['Even the sun sets', 'paradise'], verao: ['The art summertime', 'of'], domingo: ['Sunday', 'Service'], alem: ['Beyond', 'um experimento visual sobre horizontes'],
     vlog: ['Canada Vlog', 'world tour · episódio 3'], chamada: ['The Last Call', 'uma experiência cinematográfica'], marcador: ['Nothing ever does', 'um filme'], tudo: ['everything goes.', 'certamente, um dia vai passar'],
@@ -56,7 +64,9 @@
     caixa: ['Promoção', 'só esta semana'], glitch: ['Reset', 'nova fase'], maquina: ['Você sabia?', 'o segredo é simples'], empilhado: ['Pare de errar', 'veja isso'],
     revista: ['Estilo', 'a edição de hoje'], assinatura: ['Com amor', 'feito à mão'], impacto: ['Atenção', 'leia isso'],
     capitulo: ['O começo', 'capítulo um'], eco: ['Agora', 'não depois'], manchete: ['Tudo mudou', 'edição extra'], gravando: ['Bastidores', 'gravado hoje'],
-    cartaz: ['Sem limites', 'temporada nova'], luxo: ['Maison', 'coleção privada'], letreiro: ['Good vibes', 'aberto agora'], entrevista: ['Ana Souza', 'fundadora · Sua Marca']
+    cartaz: ['Sem limites', 'temporada nova'], luxo: ['Maison', 'coleção privada'], letreiro: ['Good vibes', 'aberto agora'], entrevista: ['Ana Souza', 'fundadora · Sua Marca'],
+    creditos: ['Confinamento', 'da glória'], festival: ['Chutando estrelas', 'um curta premiado'], duplo: ['Cinematic', 'film titles'], espaco: ['Search', 'um filme sobre procurar'],
+    condensado: ['Meu futuro agora', 'um filme sobre começar'], sonho: ['Sons do vazio', 'o mar fala'], documentario: ['Sem pecado', 'documentário']
   };
   var MODELS = [];
   DEFS.forEach(function (d, i) {
@@ -77,6 +87,15 @@
   function up(s) { return String(s || '').toUpperCase(); }
   function cap(s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
   function A(k, d, u) { return { k: k, d: d, u: u }; }
+  /* linha de créditos de cinema: rótulo pequeno em cima, nome embaixo */
+  function credits(L, y, color, items, d0) {
+    var n = items.length, step = 940 / n;
+    items.forEach(function (it, k) {
+      var x = 70 + step * k + step / 2;
+      L.push(T({ text: it[0], font: 'Inter-400', size: 17, x: x, y: y, color: color, ls: 0.12, anim: A('fade', d0 + k * 0.05, 0.5) }));
+      L.push(T({ text: it[1], font: 'Oswald-700', size: fit(it[1], 'Oswald-700', step - 16, 26, 1, 0.04), x: x, y: y + 30, color: color, ls: 0.04, anim: A('fade', d0 + 0.05 + k * 0.05, 0.5) }));
+    });
+  }
 
   function layout(id, tx) {
     var m = null;
@@ -344,6 +363,85 @@
         L.push({ type: 'box', x: 90, y: y + 34, w: 900, h: 16, color: AC, r: 4, anim: A('wipe', 0.45, 0.4) });
         if (sub) L.push(T({ text: up(sub), font: 'ArchivoBlack-400', size: fit(up(sub), 'ArchivoBlack-400', 880, 54), x: 540, y: y + 120, color: C, anim: A('rise', 0.55, 0.5) }));
         break;
+      case 'creditos': {
+        L.push({ type: 'dim', alpha: 0.35, anim: A('fade', 0, 0.4) });
+        var BR = up(brand);
+        credits(L, 230, '#FFFFFF', [['CÂMERA', BR], ['DIREÇÃO', BR], ['UM FILME DE', 'FLUX CINE'], ['MÚSICA', BR]], 0.6);
+        s = fit(up(title), 'Anton-400', 840, 280, 1, 0); y = 1000;
+        L.push(T({ text: up(title), font: 'Anton-400', size: s, x: 540, y: y, color: C, anim: A('blur', 0.05, 0.9) }));
+        var sw3 = width(up(title), 'Anton-400', s);
+        L.push(T({ text: '*', font: 'Anton-400', size: s * 0.5, x: 540 - sw3 / 2 - 50, y: y - s * 0.12, color: C, anim: A('pop', 0.5, 0.5) }));
+        L.push(T({ text: '*', font: 'Anton-400', size: s * 0.5, x: 540 + sw3 / 2 + 50, y: y - s * 0.12, color: C, anim: A('pop', 0.55, 0.5) }));
+        if (sub) L.push(T({ text: up(sub), font: 'ArchivoBlack-400', size: fit(up(sub), 'ArchivoBlack-400', 700, 64), x: 540, y: y + 84, color: AC, anim: A('rise', 0.45, 0.6) }));
+        L.push(T({ text: 'ELENCO: ' + BR + ', FLUX CINE, VOCÊ E QUEM ASSISTE ATÉ O FIM', font: 'Oswald-700', size: 22, x: 540, y: 1660, color: AC === '#FFFFFF' ? C : AC, ls: 0.04, anim: A('fade', 0.9, 0.5) }));
+        break;
+      }
+      case 'festival': {
+        L.push({ type: 'dim', alpha: 0.5, anim: A('fade', 0, 0.4) });
+        [[240, 'VENCEDOR', 'MELHOR CURTA'], [540, 'VENCEDOR', 'FESTIVAL ' + YEAR], [840, 'VENCEDOR', 'MELHOR DIREÇÃO']].forEach(function (q, k) {
+          L.push(T({ text: '(', font: 'CormorantGaramond-500', size: 130, x: q[0] - 95, y: 300, color: AC, anim: A('fade', 0.4 + k * 0.1, 0.5) }));
+          L.push(T({ text: ')', font: 'CormorantGaramond-500', size: 130, x: q[0] + 95, y: 300, color: AC, anim: A('fade', 0.4 + k * 0.1, 0.5) }));
+          L.push(T({ text: q[1], font: 'Inter-700', size: 16, x: q[0], y: 250, color: AC, ls: 0.15, anim: A('fade', 0.45 + k * 0.1, 0.5) }));
+          L.push(T({ text: q[2], font: 'Inter-700', size: fit(q[2], 'Inter-700', 150, 18, 1, 0.06), x: q[0], y: 276, color: AC, ls: 0.06, anim: A('fade', 0.5 + k * 0.1, 0.5) }));
+          L.push(T({ text: '• • • • •', font: 'Inter-700', size: 12, x: q[0], y: 300, color: AC, anim: A('fade', 0.55 + k * 0.1, 0.5) }));
+        });
+        s = fit(cap(title), 'Yellowtail-400', 1000, 230); y = 1000;
+        L.push(T({ text: cap(title), font: 'Yellowtail-400', size: s, x: 540, y: y, color: C, glow: C, rot: -3, anim: A('flicker', 0.1, 1.1) }));
+        if (sub) L.push(T({ text: '( ' + up(sub) + ' )', font: 'Inter-700', size: fit('( ' + up(sub) + ' )', 'Inter-700', 760, 30, 1, 0.12), x: 540, y: y + 110, color: AC, ls: 0.12, anim: A('fade', 0.8, 0.5) }));
+        credits(L, 1700, AC, [['CÂMERA', up(brand)], ['DIREÇÃO', up(brand)], ['FILME DE', 'FLUX CINE'], ['MÚSICA', up(brand)]], 1.0);
+        break;
+      }
+      case 'duplo': {
+        L.push({ type: 'dim', alpha: 0.38, anim: A('fade', 0, 0.4) });
+        [['PRÊMIO SÃO PAULO', 230], ['PRÊMIO RIO', 540], ['PRÊMIO LISBOA', 850]].forEach(function (q, k) { L.push(T({ text: q[0], font: 'Inter-400', size: 20, x: q[1], y: 640, color: '#FFFFFF', ls: 0.15, anim: A('fade', 0.7 + k * 0.06, 0.5) })); });
+        s = fit(up(title), 'ArchivoBlack-400', 940, 230, 1, -0.03); y = 1000;
+        L.push(T({ text: up(title), font: 'ArchivoBlack-400', size: s, x: 540, y: y, color: C, ls: -0.03, anim: A('stretch', 0.05, 0.7) }));
+        var scr2 = cap(sub || brand);
+        L.push(T({ text: scr2, font: 'GreatVibes-400', size: fit(scr2, 'GreatVibes-400', 800, Math.round(s * 0.95)), x: 560, y: y + s * 0.18, color: AC, shadow: { dx: 0, dy: 4, color: 'rgba(0,0,0,.45)', sw: 0 }, anim: A('reveal', 0.45, 1.0) }));
+        L.push({ type: 'line', x1: 80, y1: y + s * 0.8 + 40, x2: 1000, y2: y + s * 0.8 + 40, w: 1.5, color: '#FFFFFF', anim: A('draw', 0.8, 0.7) });
+        L.push(T({ text: 'UM VÍDEO DE ' + up(brand) + ' · EDITADO NO FLUX CINE · ' + YEAR, font: 'Inter-400', size: 18, x: 540, y: y + s * 0.8 + 80, color: '#FFFFFF', ls: 0.12, anim: A('fade', 1.0, 0.5) }));
+        break;
+      }
+      case 'espaco': {
+        L.push({ type: 'dim', alpha: 0.28, anim: A('fade', 0, 0.6) });
+        credits(L, 200, C, [['DIRIGIDO POR', up(brand)], ['PRODUZIDO POR', 'FLUX CINE'], ['ESCRITO POR', up(brand)]], 0.8);
+        s = fit(up(title), 'CormorantGaramond-500', 1000, 240, 1, 0.22); y = 1010;
+        L.push(T({ text: up(title), font: 'CormorantGaramond-500', size: s, x: 540, y: y, color: C, ls: 0.22, anim: A('track', 0.1, 1.5) }));
+        if (sub) L.push(T({ text: up(sub), font: 'Inter-400', size: fit(up(sub), 'Inter-400', 800, 22, 1, 0.5), x: 540, y: y + 70, color: C, ls: 0.5, anim: A('fade', 1.0, 0.8) }));
+        L.push(T({ text: 'ESTREIA ' + DATE, font: 'Inter-700', size: 18, x: 540, y: 1740, color: C, ls: 0.4, anim: A('fade', 1.2, 0.6) }));
+        break;
+      }
+      case 'condensado': {
+        L.push({ type: 'dim', alpha: 0.3, anim: A('fade', 0, 0.4) });
+        var cw3 = up(title).split(/\s+/).filter(Boolean), last = cw3.length > 1 ? cw3.pop() : '', first = cw3.join(' ');
+        var full = first + (last ? ' ' + last : ''), s5 = fit(full, 'BebasNeue-400', 1000, 260, 0.9, 0); y = 1000;
+        var fw = width(first + ' ', 'BebasNeue-400', s5) * 0.9, lw2 = width(last, 'BebasNeue-400', s5) * 0.9, x5 = 540 - (fw + lw2) / 2;
+        L.push(T({ text: first, font: 'BebasNeue-400', size: s5, x: x5, y: y, align: 'left', color: C, sx: 0.9, anim: A('slideL', 0.05, 0.6) }));
+        if (last) L.push(T({ text: last, font: 'BebasNeue-400', size: s5, x: x5 + fw, y: y, align: 'left', color: AC, sx: 0.9, anim: A('slideR', 0.2, 0.6) }));
+        if (sub) L.push(T({ text: up(sub), font: 'Oswald-700', size: fit(up(sub), 'Oswald-700', 760, 36, 1, 0.08), x: 540, y: y + 66, color: C, ls: 0.08, anim: A('fade', 0.6, 0.5) }));
+        L.push(T({ text: 'ELENCO: ' + up(brand) + ', FLUX CINE E VOCÊ', font: 'Oswald-700', size: 24, x: 540, y: 1600, color: AC, ls: 0.05, anim: A('fade', 0.9, 0.5) }));
+        L.push(T({ text: 'UM FILME ORIGINAL · ' + YEAR, font: 'Oswald-700', size: 24, x: 540, y: 1636, color: AC, ls: 0.05, anim: A('fade', 0.95, 0.5) }));
+        break;
+      }
+      case 'sonho': {
+        L.push({ type: 'dim', alpha: 0.22, anim: A('fade', 0, 0.4) });
+        var sw4 = cap(title).split(/\s+/).filter(Boolean), sh1 = sw4.slice(0, Math.ceil(sw4.length / 2)).join(' '), sh2 = sw4.slice(Math.ceil(sw4.length / 2)).join(' ');
+        var s6 = Math.min(fit(sh1, 'PlayfairDisplay-900', 960, 220), sh2 ? fit(sh2, 'PlayfairDisplay-900', 960, 260) : 999); y = sh2 ? 900 : 1000;
+        L.push(T({ text: sh1, font: 'PlayfairDisplay-900', size: s6, x: 540, y: y, color: C, shadow: { dx: 0, dy: Math.round(s6 * 0.06), color: AC, sw: Math.round(s6 * 0.025) }, anim: A('pop', 0.05, 0.6) }));
+        if (sh2) L.push(T({ text: sh2, font: 'PlayfairDisplay-900', size: s6 * 1.15, x: 540, y: y + s6 * 1.05, color: C, shadow: { dx: 0, dy: Math.round(s6 * 0.07), color: AC, sw: Math.round(s6 * 0.028) }, anim: A('pop', 0.2, 0.6) }));
+        if (sub) L.push(T({ text: up(sub), font: 'Inter-700', size: fit(up(sub), 'Inter-700', 700, 26, 1, 0.3), x: 540, y: y - s6 * 0.95, color: '#FFFFFF', ls: 0.3, anim: A('fade', 0.6, 0.5) }));
+        credits(L, 1660, '#FFFFFF', [['CÂMERA', up(brand)], ['DIREÇÃO', up(brand)], ['FILME DE', 'FLUX CINE']], 0.9);
+        break;
+      }
+      case 'documentario': {
+        L.push({ type: 'dim', alpha: 0.45, anim: A('fade', 0, 0.4) });
+        s = fit(cap(title), 'GreatVibes-400', 1000, 270); y = 980;
+        L.push(T({ text: cap(title), font: 'GreatVibes-400', size: s, x: 540, y: y, color: C, rot: -4, shadow: { dx: 0, dy: 6, color: 'rgba(0,0,0,.5)', sw: 0 }, anim: A('reveal', 0.05, 1.1) }));
+        var tag = up(sub || 'documentário');
+        L.push(T({ text: tag, font: 'ArchivoBlack-400', size: fit(tag, 'ArchivoBlack-400', 700, 70, 1, 0.02), x: 540, y: y + 110, color: AC, ls: 0.02, anim: A('zoom', 0.7, 0.5) }));
+        credits(L, 1680, AC, [['CÂMERA', up(brand)], ['DIREÇÃO', up(brand)], ['FILME DE', 'FLUX CINE'], ['MÚSICA', up(brand)]], 1.0);
+        break;
+      }
       case 'capitulo': {
         L.push({ type: 'dim', alpha: 0.42, anim: A('fade', 0, 0.6) });
         y = 1000; s = fit(cap(title), 'PlayfairDisplay-600i', 960, 200, 1, -0.01);
